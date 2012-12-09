@@ -5,6 +5,17 @@
 #include <vector>
 #include <list>
 
+#ifndef QT_CORE_LIB
+#ifdef __linux__
+#include <GL/glut.h>
+#else
+#include "gl/glut.h"
+#endif
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif
+
 using namespace std;
 
 struct Point {
@@ -119,6 +130,36 @@ struct Box
 	float getYSize() const { return max.y - min.y;}
 	float getZSize() const { return max.z - min.z;}
 	
+	void draw()
+	{
+		int i;
+		Point p[8] = { 
+			Point(min.x, min.y, min.z), //0
+			Point(min.x, max.y, min.z), //1
+			Point(min.x, max.y, max.z), //2
+			Point(min.x, min.y, max.z), //3
+			Point(max.x, min.y, min.z), //0
+			Point(max.x, max.y, min.z), //1
+			Point(max.x, max.y, max.z), //2
+			Point(max.x, min.y, max.z), //3
+		};
+
+		glBegin(GL_LINE_LOOP);
+		for (i=0; i<4; ++i) glVertex3fv(p[i].data);
+		glEnd();
+
+		glBegin(GL_LINE_LOOP);
+		for (i=4; i<8; ++i) glVertex3fv(p[i].data);
+		glEnd();
+
+		glBegin(GL_LINES);
+		for (i=0; i<4; ++i) {
+			glVertex3fv(p[i].data);
+			glVertex3fv(p[i+4].data);
+		}
+		glEnd();
+
+	}
 	static bool intersect(const Box &b1, const Box &b2)
 	{
 		return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&

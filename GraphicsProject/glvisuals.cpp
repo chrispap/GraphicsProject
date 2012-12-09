@@ -30,17 +30,19 @@ GlVisuals::GlVisuals()
     scene_size = 100;
 
     /* Load Models */
- // [Model_1]
+	// [Model_1]
 	m1 = new Model("Model_1.obj", 1);
 	m1->alingCenterToOrigin();
-	m1->setSize(scene_size);
+	m1->setSize(scene_size/2);
 	m1->reduce();
- // [Model_2]
+	m1->reduce();
+	
+	// [Model_2]
 	m2 = new Model("Model_2.obj", 1);
 	m2->alingCenterToOrigin();
 	m2->setSize(scene_size);
-	m2->reduce();
- // [Intersection of model 1,2]
+	
+	// [Intersection of model 1,2]
 	m12 = new Model(*m1, *m2, 1);
 
     /* Set viewing angle | distance | ... */
@@ -126,11 +128,14 @@ void GlVisuals::glPaint()
 	drawAxes();
 	
 	glColor3ub(c,c,0);
-	m1->draw(0x3);
+	m1->draw( (1<<0) | (1<<1) | (1<<3));
+
 	glColor3ub(0,c,c);
-	m2->draw(0x3);
+	m2->draw( (1<<0) | (1<<1) | (1<<3));
+
 	glColor3ub(c,0,c);
-	m12->draw(0x01);
+	m12->draw( (1<<0) | (1<<1));
+
 }
 
 /* Drawing Methods */

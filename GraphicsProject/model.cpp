@@ -28,7 +28,7 @@ Model::Model(string filename, bool ccw,  bool vt)
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
- printf ("Model loading took:\t%4.2f sec.\n", ((float)clock()-t)/CLOCKS_PER_SEC);
+	printf ("Model loading took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Model::Model(const Model &m1, const Model &m2, bool both)
@@ -38,7 +38,7 @@ Model::Model(const Model &m1, const Model &m2, bool both)
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
- printf ("Model collision took:\t%4.2f sec.\n", ((float)clock()-t)/CLOCKS_PER_SEC);
+ printf ("Model collision took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Model::~Model()
@@ -127,6 +127,7 @@ void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &mVer
 
 	vector<Triangle> const &m1t = m1.mTriangles;
 	vector<Triangle> const &m2t = m2.mTriangles;
+	
 	vector<Triangle>::const_iterator mt1, mt2;
 	for (mti1=0; mti1<m1t.size(); ++mti1) {
 		mt1Collided=false;
@@ -216,7 +217,9 @@ void Model::reduce(int lod)
 	/* Do the proccessing */
 	for (pli = procList.begin(); pli != procList.end(); ++pli) {
 		ti = *pli;
-		if (mTriangles[ti].deleted) { cout << "d1 "; continue; }
+
+		if (mTriangles[ti].deleted)
+			continue;
 
 		/*1. Pick two vertices that will form the collapsing edge */
 		int vk = mTriangles[ti].vi1;				// Vertex we keep of the collapsing edge
@@ -234,7 +237,9 @@ void Model::reduce(int lod)
 			else { if (*vxLi == ti) { ++vxLi; ++vkLi; }
 				   else { tx = *vxLi; break; }}
 		}
-		if (mTriangles[tx].deleted) { cout << "d2 "; continue; }
+
+		if (mTriangles[tx].deleted) 
+			continue;
 
 		/*3. Delete the triangles of the collapsing edge */
 		mTriangles[ti].deleted = 1;
@@ -277,13 +282,12 @@ void Model::reduce(int lod)
 
 	createTriangleLists();
 	updateTriangleData();
- printf ("Model reduction took:\t%4.2f sec.\n", ((float)clock()-t)/CLOCKS_PER_SEC);
+ printf ("Model reduction took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 /* Drawing */
 void Model::drawTriangles(bool wire)
 {
-    glPushMatrix();
 	glPolygonMode(GL_FRONT_AND_BACK, wire? GL_LINE: GL_FILL);
     glBegin(GL_TRIANGLES);
 
@@ -295,13 +299,11 @@ void Model::drawTriangles(bool wire)
     }
 
     glEnd();
-    glPopMatrix();
     return;
 }
 
 void Model::drawNormals()
 {
-    glPushMatrix();
     glBegin(GL_LINES);
     vector<Triangle>::const_iterator ti;
 	for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
@@ -310,17 +312,20 @@ void Model::drawNormals()
     }
     
     glEnd();
-    glPopMatrix();
     return;
+}
+
+void Model::drawAABB()
+{
+	mBox.draw();
 }
 
 void Model::draw(int x)
 {
-    glPushMatrix();
     if (x & (1<<0)) drawTriangles(0);
 	glColor3ub(0,0,0);
 	if (x & (1<<1)) drawTriangles(1);
 	glColor3ub(0xFF,0,0);
 	if (x & (1<<2)) drawNormals();
-    glPopMatrix();
+	if (x & (1<<3)) drawAABB();
 }

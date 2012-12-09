@@ -30,6 +30,7 @@ class Model
 	void updateTriangleData ();
 	void drawTriangles (bool wire=0);
 	void drawNormals ();
+	void drawAABB ();
 
 	static void loadTrianglesFromOBJ (string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt=0);
 	static void findCollisions (const Model &m1, const Model &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
