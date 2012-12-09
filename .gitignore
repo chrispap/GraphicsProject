@@ -11,3 +11,15 @@
 *.lai
 *.la
 *.a
+
+# Cmake
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt
+
+# Visual Studio C++
+*.suo
+*Release*
+*Debug*
