@@ -151,17 +151,12 @@ struct Box
 
 struct Triangle
 {	
-	vector<Point> *vecList;	// Pointer to the vector containing the mVertice
+	vector<Point> *vecList;	// Pointer to the vector containing the mVertices
 	int vi1, vi2, vi3;		// Indices to the above vector
 	float A, B, C, D;		// Plane equation coefficients
 	bool deleted;			// Flag indicating that a triangle should be considered deleted
 	Box box;				// Bounding box of the triangle
 	
-public:
-	Triangle()
-	{
-	}
-
     Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3)
     {
         vi1 = _v1;

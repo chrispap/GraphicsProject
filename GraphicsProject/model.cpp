@@ -23,21 +23,22 @@
 /* Constructrors */
 Model::Model(string filename, bool ccw,  bool vt)
 {
-    loadTrianglesFromOBJ(filename, mVertice, mTriangles, ccw, vt);
+ clock_t t = clock();
+    loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
+ printf ("Model loading took:\t%4.2f sec.\n", ((float)clock()-t)/CLOCKS_PER_SEC);
 }
 
 Model::Model(const Model &m1, const Model &m2, bool both)
 {
-	clock_t t = clock();
-	findCollisions(m1, m2, mVertice, mTriangles, both);
-	printf ("Collision detection took: %4.2f sec.\n", ((float)clock()-t)/CLOCKS_PER_SEC);
-	
+ clock_t t = clock();
+	findCollisions(m1, m2, mVertices, mTriangles, both);
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
+ printf ("Model collision took:\t%4.2f sec.\n", ((float)clock()-t)/CLOCKS_PER_SEC);
 }
 
 Model::~Model()
@@ -52,7 +53,7 @@ void Model::createBoundingBox()
     boxMax.x = boxMax.y = boxMax.z = FLT_MIN;
 
     vector<Point>::const_iterator vi;
-    for (vi=mVertice.begin(); vi!=mVertice.end(); ++vi) {
+    for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
         boxMax.x = vi->x > boxMax.x? vi->x: boxMax.x;
         boxMax.y = vi->y > boxMax.y? vi->y: boxMax.y;
         boxMax.z = vi->z > boxMax.z? vi->z: boxMax.z;
@@ -67,12 +68,11 @@ void Model::createBoundingBox()
 void Model::createTriangleLists()
 {
 	mVertexTriangles.clear();
-	mVertexTriangles.resize(mVertice.size());
+	mVertexTriangles.resize(mVertices.size());
 
 	int i=0;
 	vector<Triangle>::iterator ti;
 	for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) {
-		if (ti->deleted) continue;
 		mVertexTriangles[ti->vi1].insert(i);
 		mVertexTriangles[ti->vi2].insert(i);
 		mVertexTriangles[ti->vi3].insert(i++);
@@ -83,12 +83,11 @@ void Model::updateTriangleData()
 {
     vector<Triangle>::iterator ti;
     for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) {
-		if (ti->deleted) continue;
         ti->updateData();
     }
 }
 
-void Model::loadTrianglesFromOBJ(string filename, vector<Point> &mVertice, vector<Triangle> &mTriangles, bool ccw, bool vt)
+void Model::loadTrianglesFromOBJ(string filename, vector<Point> &mVertices, vector<Triangle> &mTriangles, bool ccw, bool vt)
 {
     Point v;
     int f1, f2, f3;
@@ -101,13 +100,13 @@ void Model::loadTrianglesFromOBJ(string filename, vector<Point> &mVertice, vecto
         switch (line[0]) {
         case 'v':
             sscanf(&line[1],"%f %f %f", &v.x, &v.y, &v.z);
-            mVertice.push_back(v);
+            mVertices.push_back(v);
             break;
          case 'f':
             if (vt) sscanf(&line[1],"%d%s%d%s%d%s", &f1, trash, &f2, trash, &f3, trash);
             else sscanf(&line[1],"%d%d%d", &f1, &f2, &f3);
-            if (ccw) mTriangles.push_back(Triangle(&mVertice, --f1, --f3, --f2));
-            else     mTriangles.push_back(Triangle(&mVertice, --f1, --f2, --f3));
+            if (ccw) mTriangles.push_back(Triangle(&mVertices, --f1, --f3, --f2));
+            else     mTriangles.push_back(Triangle(&mVertices, --f1, --f2, --f3));
             break;
          default:
            continue;
@@ -117,7 +116,7 @@ void Model::loadTrianglesFromOBJ(string filename, vector<Point> &mVertice, vecto
     fclose(objfile);
 }
 
-void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &mVertice, vector<Triangle> &mTriangles, bool both)
+void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &mVertices, vector<Triangle> &mTriangles, bool both)
 {
 	//TODO Eliminate vertex repetition
 
@@ -136,19 +135,19 @@ void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &mVer
 			if (!Triangle::intersects(m1t[mti1], m2t[mti2])) continue;
 			
 			if (!mt1Collided) {
-				mVertice.push_back(m1t[mti1].v1());
-				mVertice.push_back(m1t[mti1].v2());
-				mVertice.push_back(m1t[mti1].v3());
-				mTriangles.push_back(Triangle(&mVertice, 3*count, 3*count+1, 3*count+2));
+				mVertices.push_back(m1t[mti1].v1());
+				mVertices.push_back(m1t[mti1].v2());
+				mVertices.push_back(m1t[mti1].v3());
+				mTriangles.push_back(Triangle(&mVertices, 3*count, 3*count+1, 3*count+2));
 				count++;
 				mt1Collided=true;
 			}
 			if (both) {
 				if (!mt2Collided[mti2]){
-					mVertice.push_back(m2t[mti2].v1());
-					mVertice.push_back(m2t[mti2].v2());
-					mVertice.push_back(m2t[mti2].v3());
-					mTriangles.push_back(Triangle(&mVertice, 3*count, 3*count+1, 3*count+2));
+					mVertices.push_back(m2t[mti2].v1());
+					mVertices.push_back(m2t[mti2].v2());
+					mVertices.push_back(m2t[mti2].v3());
+					mTriangles.push_back(Triangle(&mVertices, 3*count, 3*count+1, 3*count+2));
 					count++;
 					mt2Collided[mti2]=true;
 				}
@@ -159,7 +158,6 @@ void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &mVer
 			
 		}
 	}
-	cout << "Intersections: " << count << endl;
 }
 
 /* Editing */
@@ -170,7 +168,7 @@ void Model::setSize(float size)
                               mBox.max.z-mBox.min.z)));
 
     vector<Point>::iterator vi;
-	for (vi=mVertice.begin(); vi!= mVertice.end(); ++vi)
+	for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
         vi->scale(s);
     
 	mBox.scale(s);
@@ -180,7 +178,7 @@ void Model::setSize(float size)
 void Model::alingCornerToOrigin()
 {
     vector<Point>::iterator vi;
-    for (vi=mVertice.begin(); vi!= mVertice.end(); ++vi)
+    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
         vi->sub(mBox.min);
 
     mBox.sub(Point(mBox.min));
@@ -196,21 +194,21 @@ void Model::alingCenterToOrigin()
 	c1.add(c2);
  
     vector<Point>::iterator vi;   
-	for (vi=mVertice.begin(); vi!= mVertice.end(); ++vi)
+	for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
         vi->sub(c1);
 
     mBox.sub(c1);
 	updateTriangleData();
 }
 
-void Model::reduce(int t)
+void Model::reduce(int lod)
 {
-	set<int> procList;		// List with mTriangles to process
+ clock_t t = clock();
+	set<int> procList;		// List with triangles to process
 	set<int>::iterator pli;	// Iterator to procList
-	int ti, tx;				// Indices of mTriangles to delete
-	int vk, vx;				// Vertices of the collapsing edge
+	int ti, tx;				// Indices of triangles to delete
 	
-	/* Initialize triangle list with all the triangles */
+	/* Populate triangle list with all the triangles */
 	pli = procList.begin();
 	for (ti=0; ti < mTriangles.size(); ++ti) 
 		procList.insert(pli, ti++);
@@ -220,14 +218,14 @@ void Model::reduce(int t)
 		ti = *pli;
 		if (mTriangles[ti].deleted) { cout << "d1 "; continue; }
 
-		/*2. Pick two vertices that will form the collapsing edge */
-		vk = mTriangles[ti].vi1;
-		vx = mTriangles[ti].vi2;
+		/*1. Pick two vertices that will form the collapsing edge */
+		int vk = mTriangles[ti].vi1;				// Vertex we keep of the collapsing edge
+		int vx = mTriangles[ti].vi2;				// Vertex we discard of the collapsing edge
 		set<int> &vkList = mVertexTriangles[vk];	// Reference to vertex's Vk triangle list
 		set<int> &vxList = mVertexTriangles[vx];	// Reference to vertex's Vx triangle list
 		set<int>::iterator vkLi, vxLi;				// Iterators for vertex triangle lists
 
-		/*3. Find the second triangle, apart ti, with edge [vk,vx]=tx */
+		/*2. Find the second triangle, apart ti, with edge [vk,vx]=tx */
 		vxLi = vxList.begin();
 		vkLi = vkList.begin();
 		while (vxLi != vxList.end() && vkLi != vkList.end()) {
@@ -236,14 +234,13 @@ void Model::reduce(int t)
 			else { if (*vxLi == ti) { ++vxLi; ++vkLi; }
 				   else { tx = *vxLi; break; }}
 		}
-
 		if (mTriangles[tx].deleted) { cout << "d2 "; continue; }
 
-		/*4. Delete the triangles of the collapsing edge */
+		/*3. Delete the triangles of the collapsing edge */
 		mTriangles[ti].deleted = 1;
 		mTriangles[tx].deleted = 1;
 		
-		/*5. Update the affected mTriangles | Remove the affected from trProcList */
+		/*5. Update the affected triangles' vertices */
 		for (vxLi = vxList.begin(); vxLi != vxList.end(); ++vxLi) {
 			if (!mTriangles[*vxLi].deleted) {
 				if      (mTriangles[*vxLi].vi1==vx) mTriangles[*vxLi].vi1 = vk;
@@ -252,10 +249,13 @@ void Model::reduce(int t)
 			}
 		}
 
+		/*6. Move the triangle list of the discarded vertex to the one we keeped */
 		vkList.insert(vxList.begin(), vxList.end());
 		vxList.clear();
 		vkList.erase(ti);
 		vkList.erase(tx);
+
+		/* 7. Remove all the triangles of this area of the process list */
 		procList.erase(tx);
 		for (vkLi = vkList.begin(); vkLi != vkList.end(); ++vkLi) 
 			procList.erase(*vkLi);
@@ -263,21 +263,21 @@ void Model::reduce(int t)
 	}
 	
 	/* Clean up the data structures holding the model data */
-	vector<set<int> >::iterator _vi;
-	for (_vi=mVertexTriangles.begin(); _vi!= mVertexTriangles.end(); ++_vi)
-		_vi->clear();
-	
 	int from, to;
-	for (from=0; from < mTriangles.size(); ) {
-		if (!mTriangles[from].deleted) ++from;
-		else {
+	for (from=0; from < mTriangles.size();  ) {
+		if (mTriangles[from].deleted) {
 			for (to=from; to+1<mTriangles.size() && mTriangles[to+1].deleted ; ++to);
 			mTriangles.erase(mTriangles.begin()+from, mTriangles.begin()+to+1);
-		}
+		} else ++from;
 	}
+
+	vector<set<int> >::iterator vti;
+	for (vti=mVertexTriangles.begin(); vti!= mVertexTriangles.end(); ++vti)
+		vti->clear();
 
 	createTriangleLists();
 	updateTriangleData();
+ printf ("Model reduction took:\t%4.2f sec.\n", ((float)clock()-t)/CLOCKS_PER_SEC);
 }
 
 /* Drawing */
@@ -289,7 +289,6 @@ void Model::drawTriangles(bool wire)
 
     vector<Triangle>::const_iterator ti;
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
-		if (ti->deleted) continue;
 		glVertex3fv(ti->v1().data);
 		glVertex3fv(ti->v2().data);
 		glVertex3fv(ti->v3().data);
@@ -306,7 +305,6 @@ void Model::drawNormals()
     glBegin(GL_LINES);
     vector<Triangle>::const_iterator ti;
 	for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
-		if (ti->deleted) continue;
 		glVertex3fv(ti->getCenter().data);
 		glVertex3fv(ti->getNormal2().data);
     }

@@ -17,8 +17,6 @@
 #include <GL/glu.h>
 #endif
 
-#define REDUCE 1
-
 using namespace std;
 
 const float GlVisuals::PI=3.14159;
@@ -26,40 +24,30 @@ const float GlVisuals::PI=3.14159;
 GlVisuals::GlVisuals()
 {
     /*Init params */
+	milli0 = -1;
 	t = 0.0;
-    milli0 = -1;
     perspective_proj = 1;
     scene_size = 100;
 
     /* Load Models */
-#ifdef REDUCE
+ // [Model_1]
 	m1 = new Model("Model_1.obj", 1);
 	m1->alingCenterToOrigin();
 	m1->setSize(scene_size);
-	m2 = new Model(*m1);
-	m2->reduce();
-
-#else
-	m1 = new Model("Model_1.obj", 1);
-	m1->setSize(scene_size);
-	m1->alingCenterToOrigin();
-	
+	m1->reduce();
+ // [Model_2]
 	m2 = new Model("Model_2.obj", 1);
-	m2->setSize(scene_size);
 	m2->alingCenterToOrigin();
-	
-	m12 = new Model(*m1, *m2, 0);
-#endif
+	m2->setSize(scene_size);
+	m2->reduce();
+ // [Intersection of model 1,2]
+	m12 = new Model(*m1, *m2, 1);
 
-    /* Set viewing angle | distance */
-    setXRotation(70);
+    /* Set viewing angle | distance | ... */
+    setXRotation(0);
     setYRotation(90);
     setZRotation(0);
-#ifdef REDUCE
     setDistancePercent(42);
-#else
-	setDistancePercent(40);
-#endif
     setHeightPercent(50);
 }
 
@@ -123,6 +111,9 @@ void GlVisuals::glPaint()
     glClear(GL_DEPTH_BUFFER_BIT );
     glMatrixMode(GL_MODELVIEW);
 	
+	static const int th0 = yRot;
+	setYRotation(th0+t*30);
+
     /* Apply camera transformations */
     glLoadIdentity();
     glTranslatef(0.0, scene_height,	scene_dist);
@@ -134,27 +125,12 @@ void GlVisuals::glPaint()
 	GLubyte c = 0x66;
 	drawAxes();
 	
-#ifdef REDUCE
-    glPushMatrix();
-	glColor3ub(c,c,0);
-    glTranslatef(0, 0, -m1->getBox().getZSize()/2);
-	m1->draw(0x3);
-    glPopMatrix();
-	
-	glPushMatrix();
-	glColor3ub(0,c,c);
-    glTranslatef(0, 0, m2->getBox().getZSize()/2);
-	m2->draw(0x3);
-    glPopMatrix();
-#else
 	glColor3ub(c,c,0);
 	m1->draw(0x3);
 	glColor3ub(0,c,c);
 	m2->draw(0x3);
 	glColor3ub(c,0,c);
 	m12->draw(0x01);
-#endif
-
 }
 
 /* Drawing Methods */
@@ -189,26 +165,22 @@ static void qNormalizeAngle(int &angle)
 void GlVisuals::setXRotation(int angle)
 {
     qNormalizeAngle(angle);
-    if (angle != xRot) {
+    if (angle != xRot)
         xRot = angle;
-    }
 }
 
 void GlVisuals::setYRotation(int angle)
 {
     qNormalizeAngle(angle);
-    if (angle != yRot) {
+    if (angle != yRot)
         yRot = angle;
-
-    }
 }
 
 void GlVisuals::setZRotation(int angle)
 {
     qNormalizeAngle(angle);
-    if (angle != zRot) {
+    if (angle != zRot)
         zRot = angle;
-    }
 }
 
 void GlVisuals::setDistancePercent(int d)
@@ -223,8 +195,7 @@ void GlVisuals::setHeightPercent(int h)
 
 void GlVisuals::setEllapsedMillis(int millis)
 {
-    // In the first call of this method, calibrate.
-    if (milli0<0)
+    if (milli0<0)	// In the first call of this method, calibrate.
         milli0 = millis;
     else
         t = ((millis-milli0)/1000.0);

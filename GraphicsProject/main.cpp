@@ -10,12 +10,12 @@ GlVisuals *visuals;
 
 void timerFired(int val)
 {
-	glutTimerFunc(5, timerFired, 0);
 	glutPostRedisplay();
 }
 
 void Render()
 {
+	glutTimerFunc(5, timerFired, 0);
 	visuals->setEllapsedMillis(glutGet(GLUT_ELAPSED_TIME));
 	visuals->glPaint();
 	glutSwapBuffers();
