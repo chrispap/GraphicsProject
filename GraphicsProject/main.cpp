@@ -15,7 +15,7 @@ void timerFired(int val)
 
 void Render()
 {
-	glutTimerFunc(5, timerFired, 0);
+	//glutTimerFunc(5, timerFired, 0);
 	visuals->setEllapsedMillis(glutGet(GLUT_ELAPSED_TIME));
 	visuals->glPaint();
 	glutSwapBuffers();

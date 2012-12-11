@@ -89,7 +89,7 @@ struct Line
 	{
 	}
 
-	Line(Point &_start, Point &_end)
+	Line(const Point &_start, const Point &_end)
 	{
 		start = _start;
 		end = _end;
@@ -130,20 +130,21 @@ struct Box
 	float getYSize() const { return max.y - min.y;}
 	float getZSize() const { return max.z - min.z;}
 	
-	void draw()
+	void draw() const
 	{
-		int i;
 		Point p[8] = { 
 			Point(min.x, min.y, min.z), //0
 			Point(min.x, max.y, min.z), //1
 			Point(min.x, max.y, max.z), //2
 			Point(min.x, min.y, max.z), //3
-			Point(max.x, min.y, min.z), //0
-			Point(max.x, max.y, min.z), //1
-			Point(max.x, max.y, max.z), //2
-			Point(max.x, min.y, max.z), //3
+			Point(max.x, min.y, min.z), //4
+			Point(max.x, max.y, min.z), //5
+			Point(max.x, max.y, max.z), //6
+			Point(max.x, min.y, max.z), //7
 		};
-
+		
+		int i;
+		
 		glBegin(GL_LINE_LOOP);
 		for (i=0; i<4; ++i) glVertex3fv(p[i].data);
 		glEnd();
@@ -159,12 +160,6 @@ struct Box
 		}
 		glEnd();
 
-	}
-	static bool intersect(const Box &b1, const Box &b2)
-	{
-		return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
-			   (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
-			   (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
 	}
 
 	Box &add(const Point &v)
@@ -187,6 +182,13 @@ struct Box
         max.scale(s);
         return *this;
     }
+	
+	static bool intersect(const Box &b1, const Box &b2)
+	{
+		return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
+			   (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
+			   (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
+	}
 
 };
 
@@ -195,8 +197,8 @@ struct Triangle
 	vector<Point> *vecList;	// Pointer to the vector containing the mVertices
 	int vi1, vi2, vi3;		// Indices to the above vector
 	float A, B, C, D;		// Plane equation coefficients
-	bool deleted;			// Flag indicating that a triangle should be considered deleted
 	Box box;				// Bounding box of the triangle
+	bool deleted;			// Flag indicating that a triangle should be considered deleted
 	
     Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3)
     {
@@ -227,30 +229,42 @@ struct Triangle
 
 	float planeEquation(const Point &r) const
 	{
-		//Enallaktika: return Point::dotprod(normal, Point(r).sub(v3()));
 		return A*r.x + B*r.y + C*r.z + D;
+		//return Point::dotprod(getNormal(), Point(r).sub(v3()));
 	}
 
-	static bool intersects (const Triangle &t, const Point &l1, const Point &l2)
+	static bool intersects (const Triangle &t, const Line &l)
 	{
-		if (t.planeEquation(l1) * t.planeEquation(l2) > 0) return false;
-        else return true; // Oxi aparaitita, thelei diereynisi.
+		if (t.planeEquation(l.start) * t.planeEquation(l.end) > 0)
+			return false;
+        else {
+			return true;
+			
+			/// Oxi aparaitita, thelei diereynisi.
+		}
 	}
 
 	static bool intersects(const Triangle &t1, const Triangle &t2)
 	{
-		/* Arxika elegxoume an sygkrouontai ta bounding boxes */
-		if (!Box::intersect(t1.box, t2.box)) return false;
-		
-		/* Kai stin synexeia elegxoume akmh-akmh */
-		if (intersects(t1, t2.v1(), t2.v2())) return true;
-		if (intersects(t1, t2.v2(), t2.v3())) return true;
-		if (intersects(t1, t2.v3(), t2.v1())) return true;
-		if (intersects(t2, t1.v1(), t1.v2())) return true;
-		if (intersects(t2, t1.v2(), t1.v3())) return true;
-		if (intersects(t2, t1.v3(), t1.v1())) return true;
-		return false;
+		/* 1. Arxika elegxoume an sygkrouontai ta bounding boxes,
+		 * 2. stin synexeia elegxoume akmh-akmh,
+		 * 3. kai an telika den yparxei sygkrousi, 
+		 *    simainei oti ta bounding boxes eipan psemata.
+		 */
+		if (!Box::intersect(t1.box, t2.box)) 
+			return false;
+		else if ( 
+			intersects(t1, Line(t2.v1(), t2.v2())) ||
+			intersects(t1, Line(t2.v2(), t2.v3())) ||
+			intersects(t1, Line(t2.v3(), t2.v1())) ||
+			intersects(t2, Line(t1.v1(), t1.v2())) ||
+			intersects(t2, Line(t1.v2(), t1.v3())) ||
+			intersects(t2, Line(t1.v3(), t1.v1()))) 
+			return true;
+		else 
+			return false;
 	}
+	
 };
 
 #endif

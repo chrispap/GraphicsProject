@@ -30,24 +30,25 @@ GlVisuals::GlVisuals()
     scene_size = 100;
 
     /* Load Models */
-	// [Model_1]
+	///[Model_1]
 	m1 = new Model("Model_1.obj", 1);
 	m1->alingCenterToOrigin();
 	m1->setSize(scene_size/2);
 	m1->reduce();
 	m1->reduce();
+	m1->reduce();
 	
-	// [Model_2]
-	m2 = new Model("Model_2.obj", 1);
-	m2->alingCenterToOrigin();
-	m2->setSize(scene_size);
+	///[Model_2]
+	//m2 = new Model("Model_2.obj", 1);
+	//m2->alingCenterToOrigin();
+	//m2->setSize(scene_size);
 	
-	// [Intersection of model 1,2]
-	m12 = new Model(*m1, *m2, 1);
+	///[Intersection of model 1,2]
+	//m12 = new Model(*m1, *m2, 1);
 
     /* Set viewing angle | distance | ... */
     setXRotation(0);
-    setYRotation(90);
+    setYRotation(180);
     setZRotation(0);
     setDistancePercent(42);
     setHeightPercent(50);
@@ -57,14 +58,46 @@ GlVisuals::~GlVisuals()
 {
 	delete m1;
 	delete m2;
+	delete m12;
 }
 
 /* OpenGL Callback Methods */
+void GlVisuals::glPaint()
+{
+	glClear(GL_COLOR_BUFFER_BIT );
+	glClear(GL_DEPTH_BUFFER_BIT );
+	glMatrixMode(GL_MODELVIEW);
+	
+	//static const int th0 = yRot;
+	//setYRotation(th0+t*30);
+	
+	/* Apply camera transformations */
+	glLoadIdentity();
+	glTranslatef(0.0, scene_height,	scene_dist);
+	glRotated(xRot, 1.0, 0.0, 0.0);
+	glRotated(yRot, 0.0, 1.0, 0.0);
+	glRotated(zRot, 0.0, 0.0, 1.0);
+	
+	/* Draw scene objects */
+	GLubyte c = 0x66;
+	drawAxes();
+	
+	glColor3ub(c,c,0);
+	m1->draw( 2|16 );
+	
+	//glColor3ub(0,c,c);
+	//m2->draw( 1|2|8 );
+	
+	//glColor3ub(c,0,c);
+	//m12->draw( 1|2 );
+	
+}
+
 void GlVisuals::glInitialize()
 {
     GLfloat ambientLight[] = { 1.0, 1.0, 1.0, 1.0 };
     GLfloat diffuseLight[] = { 1.0, 1.0, 1.0, 1.0 };
-	GLfloat lightPos[] = { 0.0, 0.0, scene_size, 0.0 };
+	GLfloat lightPos[] = { 0.0, 0.0, -scene_size, 0.0 };
 
     glLightfv( GL_LIGHT0, GL_AMBIENT, ambientLight );
     glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseLight );
@@ -78,6 +111,7 @@ void GlVisuals::glInitialize()
 	//glEnable (GL_BLEND);
 	//glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_CULL_FACE);
+	//glEnable(GL_LINE_SMOOTH);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
@@ -106,38 +140,6 @@ void GlVisuals::glResize(int w, int h)
         gluPerspective(60.0, aspect, 1.0, 100.0*scene_size);
     }
 }
-
-void GlVisuals::glPaint()
-{
-    glClear(GL_COLOR_BUFFER_BIT );
-    glClear(GL_DEPTH_BUFFER_BIT );
-    glMatrixMode(GL_MODELVIEW);
-	
-	static const int th0 = yRot;
-	setYRotation(th0+t*30);
-
-    /* Apply camera transformations */
-    glLoadIdentity();
-    glTranslatef(0.0, scene_height,	scene_dist);
-    glRotated(xRot, 1.0, 0.0, 0.0);
-    glRotated(yRot, 0.0, 1.0, 0.0);
-    glRotated(zRot, 0.0, 0.0, 1.0);
-
-    /* Draw scene objects */
-	GLubyte c = 0x66;
-	drawAxes();
-	
-	glColor3ub(c,c,0);
-	m1->draw( (1<<0) | (1<<1) | (1<<3));
-
-	glColor3ub(0,c,c);
-	m2->draw( (1<<0) | (1<<1) | (1<<3));
-
-	glColor3ub(c,0,c);
-	m12->draw( (1<<0) | (1<<1));
-
-}
-
 /* Drawing Methods */
 void GlVisuals::drawAxes()
 {

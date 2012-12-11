@@ -28,7 +28,7 @@ Model::Model(string filename, bool ccw,  bool vt)
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
-	printf ("Model loading took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+	printf ("Model loading took:\t%4.2f sec | %d triangles | Kalypsi: %3.1f \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size(), boxCoverage());
 }
 
 Model::Model(const Model &m1, const Model &m2, bool both)
@@ -65,6 +65,12 @@ void Model::createBoundingBox()
 	mBox = Box(boxMin, boxMax);
 }
 
+float Model::boxCoverage()
+{
+	
+	return 50.0;
+}
+
 void Model::createTriangleLists()
 {
 	mVertexTriangles.clear();
@@ -82,12 +88,11 @@ void Model::createTriangleLists()
 void Model::updateTriangleData()
 {
     vector<Triangle>::iterator ti;
-    for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) {
+    for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) 
         ti->updateData();
-    }
 }
 
-void Model::loadTrianglesFromOBJ(string filename, vector<Point> &mVertices, vector<Triangle> &mTriangles, bool ccw, bool vt)
+void Model::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt)
 {
     Point v;
     int f1, f2, f3;
@@ -100,13 +105,13 @@ void Model::loadTrianglesFromOBJ(string filename, vector<Point> &mVertices, vect
         switch (line[0]) {
         case 'v':
             sscanf(&line[1],"%f %f %f", &v.x, &v.y, &v.z);
-            mVertices.push_back(v);
+            vertices.push_back(v);
             break;
          case 'f':
             if (vt) sscanf(&line[1],"%d%s%d%s%d%s", &f1, trash, &f2, trash, &f3, trash);
             else sscanf(&line[1],"%d%d%d", &f1, &f2, &f3);
-            if (ccw) mTriangles.push_back(Triangle(&mVertices, --f1, --f3, --f2));
-            else     mTriangles.push_back(Triangle(&mVertices, --f1, --f2, --f3));
+            if (ccw) triangles.push_back(Triangle(&vertices, --f1, --f3, --f2));
+            else     triangles.push_back(Triangle(&vertices, --f1, --f2, --f3));
             break;
          default:
            continue;
@@ -116,18 +121,19 @@ void Model::loadTrianglesFromOBJ(string filename, vector<Point> &mVertices, vect
     fclose(objfile);
 }
 
-void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &mVertices, vector<Triangle> &mTriangles, bool both)
+void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both)
 {
 	//TODO Eliminate vertex repetition
-
-	int mti1, mti2, count=0;
-	bool mt1Collided;
-    vector<char> mt2Collided;
-	mt2Collided.resize(m2.mTriangles.size(), 0);
-
+	
 	vector<Triangle> const &m1t = m1.mTriangles;
 	vector<Triangle> const &m2t = m2.mTriangles;
 	
+	int mti1, mti2, count=0;
+	bool mt1Collided;			// Flag indicating the collision of a triangle in the outer loop
+    vector<char> mt2Collided;	// Keep track of allready collided triangles
+	if (both) 
+		mt2Collided.resize(m2t.size(), 0);
+
 	vector<Triangle>::const_iterator mt1, mt2;
 	for (mti1=0; mti1<m1t.size(); ++mti1) {
 		mt1Collided=false;
@@ -135,26 +141,26 @@ void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &mVer
 			if (mt1Collided && mt2Collided[mti2]) continue;
 			if (!Triangle::intersects(m1t[mti1], m2t[mti2])) continue;
 			
-			if (!mt1Collided) {
-				mVertices.push_back(m1t[mti1].v1());
-				mVertices.push_back(m1t[mti1].v2());
-				mVertices.push_back(m1t[mti1].v3());
-				mTriangles.push_back(Triangle(&mVertices, 3*count, 3*count+1, 3*count+2));
+			/* Add the colliding triangle of the first model. */
+			if (!mt1Collided) { 
+				vertices.push_back(m1t[mti1].v1());
+				vertices.push_back(m1t[mti1].v2());
+				vertices.push_back(m1t[mti1].v3());
+				triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
 				count++;
 				mt1Collided=true;
 			}
-			if (both) {
-				if (!mt2Collided[mti2]){
-					mVertices.push_back(m2t[mti2].v1());
-					mVertices.push_back(m2t[mti2].v2());
-					mVertices.push_back(m2t[mti2].v3());
-					mTriangles.push_back(Triangle(&mVertices, 3*count, 3*count+1, 3*count+2));
-					count++;
-					mt2Collided[mti2]=true;
-				}
-			} else {
-				mt2Collided[mti2]=true;
+			
+			/* Add the colliding triangle of the second model if this is requested, otherwise break. */
+			if (!both)
 				break;
+			else if (!mt2Collided[mti2]) {
+				vertices.push_back(m2t[mti2].v1());
+				vertices.push_back(m2t[mti2].v2());
+				vertices.push_back(m2t[mti2].v3());
+				triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
+				count++;
+				mt2Collided[mti2]=true;
 			}
 			
 		}
@@ -202,7 +208,7 @@ void Model::alingCenterToOrigin()
 	updateTriangleData();
 }
 
-void Model::reduce(int lod)
+void Model::reduce(int LoD)
 {
  clock_t t = clock();
 	set<int> procList;		// List with triangles to process
@@ -269,16 +275,12 @@ void Model::reduce(int lod)
 	
 	/* Clean up the data structures holding the model data */
 	int from, to;
-	for (from=0; from < mTriangles.size();  ) {
+	for (from=0; from < mTriangles.size(); /*-*/) {
 		if (mTriangles[from].deleted) {
 			for (to=from; to+1<mTriangles.size() && mTriangles[to+1].deleted ; ++to);
 			mTriangles.erase(mTriangles.begin()+from, mTriangles.begin()+to+1);
 		} else ++from;
 	}
-
-	vector<set<int> >::iterator vti;
-	for (vti=mVertexTriangles.begin(); vti!= mVertexTriangles.end(); ++vti)
-		vti->clear();
 
 	createTriangleLists();
 	updateTriangleData();
@@ -289,17 +291,21 @@ void Model::reduce(int lod)
 void Model::drawTriangles(bool wire)
 {
 	glPolygonMode(GL_FRONT_AND_BACK, wire? GL_LINE: GL_FILL);
-    glBegin(GL_TRIANGLES);
-
+	glBegin(GL_TRIANGLES);
     vector<Triangle>::const_iterator ti;
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
 		glVertex3fv(ti->v1().data);
 		glVertex3fv(ti->v2().data);
-		glVertex3fv(ti->v3().data);
+		glVertex3fv(ti->v3().data);		
     }
-
     glEnd();
-    return;
+}
+
+void Model::drawTriangleBoxes()
+{
+    vector<Triangle>::const_iterator ti;
+    for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti)
+		ti->getBox().draw();
 }
 
 void Model::drawNormals()
@@ -323,9 +329,14 @@ void Model::drawAABB()
 void Model::draw(int x)
 {
     if (x & (1<<0)) drawTriangles(0);
+	
 	glColor3ub(0,0,0);
 	if (x & (1<<1)) drawTriangles(1);
+	
 	glColor3ub(0xFF,0,0);
 	if (x & (1<<2)) drawNormals();
+	
 	if (x & (1<<3)) drawAABB();
+	
+	if (x & (1<<4)) drawTriangleBoxes();
 }

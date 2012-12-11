@@ -29,8 +29,10 @@ class Model
 	void createTriangleLists ();
 	void updateTriangleData ();
 	void drawTriangles (bool wire=0);
+	void drawTriangleBoxes ();
 	void drawNormals ();
 	void drawAABB ();
+	float boxCoverage();
 
 	static void loadTrianglesFromOBJ (string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt=0);
 	static void findCollisions (const Model &m1, const Model &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
@@ -44,7 +46,7 @@ public:
 	void alingCornerToOrigin ();
 	void alingCenterToOrigin ();
 	void setSize (float size);
-    void reduce (int lod=1);
+    void reduce (int LoD=1);
 	void draw (int x);
 };
 
