@@ -34,8 +34,7 @@ GlVisuals::GlVisuals()
 	m1 = new Model("Model_1.obj", 1);
 	m1->alingCenterToOrigin();
 	m1->setSize(scene_size/2);
-	m1->reduce();
-	m1->reduce();
+	//m1->reduce();
 	
 	/* [Model_2] */
 	m2 = new Model("Model_2.obj", 1);
@@ -88,7 +87,7 @@ void GlVisuals::glPaint()
 	m2->draw( SOLID | WIRE );
 	
 	glColor3ub(c,0,c);
-	m12->draw( SOLID | WIRE | TBOXES);
+	m12->draw( SOLID );
 	
 }
 

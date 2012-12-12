@@ -244,28 +244,39 @@ public:
 		if (t.planeEquation(l.start) * t.planeEquation(l.end) > 0)
 			return false;
         else {
-			/* 1. Vres to simeio tomis */
-			/*
-			Ax + By + Cx + D = 0
+			/* 6 vertices forming 3 planes around the triangle */
+			Point N(t.getNormal());
+			vector<Point> tempVec(6);
+			tempVec[0] = tempVec[3] = t.v1();
+			tempVec[1] = tempVec[4] = t.v2();
+			tempVec[2] = tempVec[5] = t.v3();
+			tempVec[3].add(N);
+			tempVec[4].add(N);
+			tempVec[5].add(N);
 
+			/* Find the intersection point */
+			Point dl = Point(l.end).sub(l.start);
+			float tdl = t.planeEquation(l.start)/(t.planeEquation(dl)- t.D);
+			Point i = Point(l.start).add(dl.scale(tdl));
 			
+			float eq1 = Triangle(&tempVec, 0, 1, 3).planeEquation(i);
+			float eq2 = Triangle(&tempVec, 1, 2, 4).planeEquation(i);
+			float eq3 = Triangle(&tempVec, 2, 3, 5).planeEquation(i);
 			
-			
-			
-			
-			*/
-
+			if ( (eq1>0 && eq2>0 && eq3>0) || (eq1<0 && eq2<0 && eq3<0) )
+				return true;
+			else return false;
 
 		}
 	}
 
 	static bool intersects (const Triangle &t1, const Triangle &t2)
 	{
-		// Arxika elegxoume an sygkrouontai ta bounding boxes.
-		if (!intersects(t1.box, t2.box))
+		/* Arxika elegxoume an sygkrouontai ta bounding boxes. */
+		if (0)
 			return false;
 
-		// Stin synexeia elegxoume akmh-akmh.
+		/* Stin synexeia elegxoume akmh-akmh. */
 		else if (
 			intersects(t1, Line(t2.v1(), t2.v2())) ||
 			intersects(t1, Line(t2.v2(), t2.v3())) ||
@@ -275,7 +286,7 @@ public:
 			intersects(t2, Line(t1.v3(), t1.v1()))) 
 			return true;
 
-		// Telika den ypaarxei sygkrousi
+		/* Telika den ypaarxei sygkrousi. */
 		else
 			return false;
 	}
