@@ -74,6 +74,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>gl</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glaux.lib;glut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <TargetMachine>MachineX86</TargetMachine>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

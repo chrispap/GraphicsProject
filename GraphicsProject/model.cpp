@@ -89,7 +89,7 @@ void Model::updateTriangleData()
 {
     vector<Triangle>::iterator ti;
     for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) 
-        ti->updateData();
+        ti->update();
 }
 
 void Model::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt)
@@ -139,7 +139,7 @@ void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &vert
 		mt1Collided=false;
 		for (mti2=0; mti2<m2t.size(); ++mti2) {
 			if (mt1Collided && mt2Collided[mti2]) continue;
-			if (!Triangle::intersects(m1t[mti1], m2t[mti2])) continue;
+			if (!Geom::intersects(m1t[mti1], m2t[mti2])) continue;
 			
 			/* Add the colliding triangle of the first model. */
 			if (!mt1Collided) { 

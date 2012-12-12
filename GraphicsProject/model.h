@@ -16,14 +16,21 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #endif
+
 using namespace std;
+
+#define SOLID		(1<<0)
+#define WIRE		(1<<1)
+#define NORMALS		(1<<2)
+#define AABB		(1<<3)
+#define TBOXES		(1<<4)
 
 class Model
 {
-	vector<Point> mVertices;
-	vector<Triangle> mTriangles;
-	vector<set<int> > mVertexTriangles;
-	Box mBox;
+	Box mBox;							// The bounding box of the 3d model
+	vector<Point> mVertices;			// Vertex list
+	vector<Triangle> mTriangles;		// Triangle list | contains indices to the Vertex list
+	vector<set<int> > mVertexTriangles;	// List of lists of the triangles that are connected to each vertex
 
 	void createBoundingBox ();
 	void createTriangleLists ();
@@ -32,7 +39,6 @@ class Model
 	void drawTriangleBoxes ();
 	void drawNormals ();
 	void drawAABB ();
-	float boxCoverage();
 
 	static void loadTrianglesFromOBJ (string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt=0);
 	static void findCollisions (const Model &m1, const Model &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
@@ -43,6 +49,7 @@ public:
 	~Model (void);
 
 	Box &getBox (){ return mBox;};
+	float boxCoverage();
 	void alingCornerToOrigin ();
 	void alingCenterToOrigin ();
 	void setSize (float size);

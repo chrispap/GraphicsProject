@@ -19,9 +19,9 @@
 using namespace std;
 
 struct Point {
-    union {	
-	  struct { float x, y, z;};
-	  float data[3];
+	union {	
+		struct { float x, y, z;};
+		float data[3];
 	};
 
 	Point()
@@ -54,29 +54,6 @@ struct Point {
     {
         x *= s; y *= s; z *= s;
         return *this;
-    }
-
-    static Point crossprod(const Point &v1, const Point &v2)
-    {
-        return Point( v1.y * v2.z - v1.z * v2.y,
-                       v1.z * v2.x - v1.x * v2.z,
-                       v1.x * v2.y - v1.y * v2.x );
-    }
-
-    static float dotprod(const Point &v1, const Point &v2)
-    {
-        return v1.x * v2.x +
-               v1.y * v2.y +
-               v1.z * v2.z;
-    }
-
-    static unsigned char mkcode(const Point &v, const Point &c1, const Point &c2)
-    {
-      unsigned char code = 0x00;
-      if (v.z>c2.z) code|=0x01; else if (v.z<c1.z) code |=0x02;
-      if (v.y>c2.y) code|=0x04; else if (v.y<c1.y) code |=0x08;
-      if (v.x>c2.x) code|=0x10; else if (v.x<c1.x) code |=0x20;
-      return code;
     }
 
 };
@@ -117,12 +94,12 @@ struct Box
 
 	Box(const Point &v1, const Point &v2, const Point &v3)
 	{
-      min = Point(std::min(v1.x, std::max(v2.x, v3.x)),
-                   std::min(v1.y, std::max(v2.y, v3.y)),
-                   std::min(v1.z, std::max(v2.z, v3.z)));
-      max = Point(std::max(v1.x, std::max(v2.x, v3.x)),
-                   std::max(v1.y, std::max(v2.y, v3.y)),
-                   std::max(v1.z, std::max(v2.z, v3.z)));
+		min = Point(std::min(v1.x, std::max(v2.x, v3.x)),
+					std::min(v1.y, std::max(v2.y, v3.y)),
+					std::min(v1.z, std::max(v2.z, v3.z)));
+		max = Point(std::max(v1.x, std::max(v2.x, v3.x)),
+					std::max(v1.y, std::max(v2.y, v3.y)),
+					std::max(v1.z, std::max(v2.z, v3.z)));
                    
 	}
 
@@ -183,13 +160,6 @@ struct Box
         return *this;
     }
 	
-	static bool intersect(const Box &b1, const Box &b2)
-	{
-		return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
-			   (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
-			   (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
-	}
-
 };
 
 struct Triangle
@@ -207,18 +177,10 @@ struct Triangle
         vi3 = _v3;
         vecList = _vecList;
         deleted=0;
-        updateData();
+        update();
     }
-    
-	const Point &v1() const { return (*vecList)[vi1];}
-	const Point &v2() const { return (*vecList)[vi2];}
-	const Point &v3() const { return (*vecList)[vi3];}
-	const Box &getBox() const { return box;}
-	const Point getNormal() const { return Point(A,B,C);}
-	const Point getNormal2() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3).add(Point(A,B,C));}
-	const Point getCenter() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3);}
 	
-	void updateData()
+	void update()
 	{
 		box = Box(v1(), v2(), v3());
 		A = v1().y*(v2().z-v3().z) + v2().y*(v3().z-v1().z) + v3().y*(v1().z-v2().z);
@@ -227,10 +189,54 @@ struct Triangle
 		D = -v1().x*(v2().y*v3().z-v3().y*v2().z) -v2().x*(v3().y*v1().z-v1().y*v3().z) -v3().x*(v1().y*v2().z-v2().y*v1().z);
 	}
 
-	float planeEquation(const Point &r) const
+	const Point &v1() const { return (*vecList)[vi1];}
+	const Point &v2() const { return (*vecList)[vi2];}
+	const Point &v3() const { return (*vecList)[vi3];}
+	const Box &getBox() const { return box;}
+	const Point getNormal() const { return Point(A,B,C);}
+	const Point getNormal2() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3).add(Point(A,B,C));}
+	const Point getCenter() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3);}
+	float planeEquation(const Point &r) const { return A*r.x + B*r.y + C*r.z + D;}
+
+};
+
+class Geom {
+
+public:
+
+    static Point crossprod (const Point &v1, const Point &v2)
+    {
+	return Point( v1.y * v2.z - v1.z * v2.y,
+				  v1.z * v2.x - v1.x * v2.z,
+				  v1.x * v2.y - v1.y * v2.x );
+    }
+
+    static float dotprod (const Point &v1, const Point &v2)
+    {
+        return v1.x * v2.x +
+               v1.y * v2.y +
+               v1.z * v2.z;
+    }
+
+    static char mkcode (const Point &v, const Box b)
+    {
+		Point c1 = b.min;
+		Point c2 = b.max;
+		unsigned char code = 0x00;
+
+		if (v.z>c2.z) code|=0x01; else if (v.z<c1.z) code |=0x02;
+		if (v.y>c2.y) code|=0x04; else if (v.y<c1.y) code |=0x08;
+		if (v.x>c2.x) code|=0x10; else if (v.x<c1.x) code |=0x20;
+		
+		return code;
+    }
+
+	/* Intersections of shapes */
+	static bool intersects (const Box &b1, const Box &b2)
 	{
-		return A*r.x + B*r.y + C*r.z + D;
-		//return Point::dotprod(getNormal(), Point(r).sub(v3()));
+		return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
+			   (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
+			   (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
 	}
 
 	static bool intersects (const Triangle &t, const Line &l)
@@ -238,22 +244,29 @@ struct Triangle
 		if (t.planeEquation(l.start) * t.planeEquation(l.end) > 0)
 			return false;
         else {
-			return true;
+			/* 1. Vres to simeio tomis */
+			/*
+			Ax + By + Cx + D = 0
+
 			
-			/// Oxi aparaitita, thelei diereynisi.
+			
+			
+			
+			
+			*/
+
+
 		}
 	}
 
-	static bool intersects(const Triangle &t1, const Triangle &t2)
+	static bool intersects (const Triangle &t1, const Triangle &t2)
 	{
-		/* 1. Arxika elegxoume an sygkrouontai ta bounding boxes,
-		 * 2. stin synexeia elegxoume akmh-akmh,
-		 * 3. kai an telika den yparxei sygkrousi, 
-		 *    simainei oti ta bounding boxes eipan psemata.
-		 */
-		if (!Box::intersect(t1.box, t2.box)) 
+		// Arxika elegxoume an sygkrouontai ta bounding boxes.
+		if (!intersects(t1.box, t2.box))
 			return false;
-		else if ( 
+
+		// Stin synexeia elegxoume akmh-akmh.
+		else if (
 			intersects(t1, Line(t2.v1(), t2.v2())) ||
 			intersects(t1, Line(t2.v2(), t2.v3())) ||
 			intersects(t1, Line(t2.v3(), t2.v1())) ||
@@ -261,10 +274,12 @@ struct Triangle
 			intersects(t2, Line(t1.v2(), t1.v3())) ||
 			intersects(t2, Line(t1.v3(), t1.v1()))) 
 			return true;
-		else 
+
+		// Telika den ypaarxei sygkrousi
+		else
 			return false;
 	}
-	
+
 };
 
 #endif

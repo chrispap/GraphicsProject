@@ -30,27 +30,26 @@ GlVisuals::GlVisuals()
     scene_size = 100;
 
     /* Load Models */
-	///[Model_1]
+	/* [Model_1] */
 	m1 = new Model("Model_1.obj", 1);
 	m1->alingCenterToOrigin();
 	m1->setSize(scene_size/2);
 	m1->reduce();
 	m1->reduce();
-	m1->reduce();
 	
-	///[Model_2]
-	//m2 = new Model("Model_2.obj", 1);
-	//m2->alingCenterToOrigin();
-	//m2->setSize(scene_size);
+	/* [Model_2] */
+	m2 = new Model("Model_2.obj", 1);
+	m2->alingCenterToOrigin();
+	m2->setSize(scene_size);
 	
-	///[Intersection of model 1,2]
-	//m12 = new Model(*m1, *m2, 1);
+	/* [Intersection of model 1,2] */
+	m12 = new Model(*m1, *m2, 1);
 
-    /* Set viewing angle | distance | ... */
+    /* Set viewing angle | zoom */
     setXRotation(0);
     setYRotation(180);
     setZRotation(0);
-    setDistancePercent(42);
+    setDistancePercent(48);
     setHeightPercent(50);
 }
 
@@ -83,13 +82,13 @@ void GlVisuals::glPaint()
 	drawAxes();
 	
 	glColor3ub(c,c,0);
-	m1->draw( 2|16 );
+	m1->draw( SOLID | WIRE );
 	
-	//glColor3ub(0,c,c);
-	//m2->draw( 1|2|8 );
+	glColor3ub(0,c,c);
+	m2->draw( SOLID | WIRE );
 	
-	//glColor3ub(c,0,c);
-	//m12->draw( 1|2 );
+	glColor3ub(c,0,c);
+	m12->draw( SOLID | WIRE | TBOXES);
 	
 }
 
