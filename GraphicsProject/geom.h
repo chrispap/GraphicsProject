@@ -94,9 +94,9 @@ struct Box
 
 	Box(const Point &v1, const Point &v2, const Point &v3)
 	{
-		min = Point(std::min(v1.x, std::max(v2.x, v3.x)),
-					std::min(v1.y, std::max(v2.y, v3.y)),
-					std::min(v1.z, std::max(v2.z, v3.z)));
+		min = Point(std::min(v1.x, std::min(v2.x, v3.x)),
+					std::min(v1.y, std::min(v2.y, v3.y)),
+					std::min(v1.z, std::min(v2.z, v3.z)));
 		max = Point(std::max(v1.x, std::max(v2.x, v3.x)),
 					std::max(v1.y, std::max(v2.y, v3.y)),
 					std::max(v1.z, std::max(v2.z, v3.z)));
@@ -234,9 +234,9 @@ public:
 	/* Intersections of shapes */
 	static bool intersects (const Box &b1, const Box &b2)
 	{
-		return (b1.min.x <= b2.max.x) && (b1.max.x >= b2.min.x) &&
-			   (b1.min.y <= b2.max.y) && (b1.max.y >= b2.min.y) &&
-			   (b1.min.z <= b2.max.z) && (b1.max.z >= b2.min.z);
+		return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
+			   (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
+			   (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
 	}
 
 	static bool intersects (const Triangle &t, const Line &l)
