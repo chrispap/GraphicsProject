@@ -36,11 +36,16 @@ GlVisuals::GlVisuals()
 	m1->setSize(scene_size/2);
 	//m1->reduce();
 	
+	//printf ("Kalypsi: %3.1f%% \n", m1->boxCoverage()*100);
+
 	/* [Model_2] */
 	m2 = new Model("Model_2.obj", 1);
 	m2->alingCenterToOrigin();
 	m2->setSize(scene_size);
-	
+	m2->reduce();
+
+	//printf ("Kalypsi: %3.1f%% \n", m2->boxCoverage()*100);
+
 	/* [Intersection of model 1,2] */
 	m12 = new Model(*m1, *m2, 1);
 
@@ -48,7 +53,7 @@ GlVisuals::GlVisuals()
     setXRotation(0);
     setYRotation(180);
     setZRotation(0);
-    setDistancePercent(48);
+    setDistancePercent(49);
     setHeightPercent(50);
 }
 
@@ -81,10 +86,10 @@ void GlVisuals::glPaint()
 	drawAxes();
 	
 	glColor3ub(c,c,0);
-	m1->draw( SOLID | WIRE );
+	m1->draw( SOLID | WIRE | AABB);
 	
 	glColor3ub(0,c,c);
-	m2->draw( SOLID | WIRE );
+	m2->draw( SOLID | WIRE | AABB);
 	
 	glColor3ub(c,0,c);
 	m12->draw( SOLID );

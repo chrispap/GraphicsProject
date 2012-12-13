@@ -23,22 +23,22 @@
 /* Constructrors */
 Model::Model(string filename, bool ccw,  bool vt)
 {
- clock_t t = clock();
+clock_t t = clock();
     loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
-	printf ("Model loading took:\t%4.2f sec | %d triangles | Kalypsi: %3.1f \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size(), boxCoverage());
+printf ("Model loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Model::Model(const Model &m1, const Model &m2, bool both)
 {
- clock_t t = clock();
+clock_t t = clock();
 	findCollisions(m1, m2, mVertices, mTriangles, both);
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
- printf ("Model collision took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+printf ("Model collision took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Model::~Model()
@@ -67,8 +67,36 @@ void Model::createBoundingBox()
 
 float Model::boxCoverage()
 {
-	
-	return 50.0;
+	int voxelCount=0, intersectionsCount;
+	Point ray_far = Point(mBox.max).scale(3);
+
+	const float xm=10, ym=10, zm=10;
+	float dx = (mBox.max.x - mBox.min.x)/xm;
+	float dy = (mBox.max.y - mBox.min.y)/ym;
+	float dz = (mBox.max.z - mBox.min.z)/zm;
+
+	for (int x=0; x<xm; ++x) {
+		printf("\b\b\b\b");
+		for (int y=0; y<ym; ++y) {
+			for (int z=0; z<zm; ++z) {
+				intersectionsCount=0;
+				Line ray (Point(mBox.min.x+dx*x, mBox.min.y+dy*y, mBox.min.z+dz*z), ray_far);
+
+				vector<Triangle>::const_iterator ti;
+				for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti)
+					if (Geom::intersects(*ti, ray)) 
+						++intersectionsCount;
+
+				if (intersectionsCount%2 == 1) 
+					++voxelCount;
+			}
+		}
+
+		int perc = (100*(x+1))/xm;
+		printf("%3d%%", perc);
+	}
+
+	return (float)(voxelCount) / (xm*ym*zm);
 }
 
 void Model::createTriangleLists()

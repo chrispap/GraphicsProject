@@ -234,17 +234,24 @@ public:
 	/* Intersections of shapes */
 	static bool intersects (const Box &b1, const Box &b2)
 	{
-		return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
-			   (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
-			   (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
+		return (b1.min.x <= b2.max.x) && (b1.max.x >= b2.min.x) &&
+			   (b1.min.y <= b2.max.y) && (b1.max.y >= b2.min.y) &&
+			   (b1.min.z <= b2.max.z) && (b1.max.z >= b2.min.z);
 	}
 
 	static bool intersects (const Triangle &t, const Line &l)
 	{
 		if (t.planeEquation(l.start) * t.planeEquation(l.end) > 0)
 			return false;
-        else {
-			/* 6 vertices forming 3 planes around the triangle */
+        else 
+		{
+			/* Find the intersection point */
+			Point dl = Point(l.end).sub(l.start);
+			float tdl = -t.planeEquation(l.start)/(t.planeEquation(dl)- t.D);
+			Point i = Point(l.start).add(dl.scale(tdl));
+			
+			/* Temporary vector containing the 6 vertices
+			 * that form the 3 planes around the triangle */
 			Point N(t.getNormal());
 			vector<Point> tempVec(6);
 			tempVec[0] = tempVec[3] = t.v1();
@@ -254,11 +261,6 @@ public:
 			tempVec[4].add(N);
 			tempVec[5].add(N);
 
-			/* Find the intersection point */
-			Point dl = Point(l.end).sub(l.start);
-			float tdl = t.planeEquation(l.start)/(t.planeEquation(dl)- t.D);
-			Point i = Point(l.start).add(dl.scale(tdl));
-			
 			float eq1 = Triangle(&tempVec, 0, 1, 3).planeEquation(i);
 			float eq2 = Triangle(&tempVec, 1, 2, 4).planeEquation(i);
 			float eq3 = Triangle(&tempVec, 2, 3, 5).planeEquation(i);
@@ -266,14 +268,13 @@ public:
 			if ( (eq1>0 && eq2>0 && eq3>0) || (eq1<0 && eq2<0 && eq3<0) )
 				return true;
 			else return false;
-
 		}
 	}
 
 	static bool intersects (const Triangle &t1, const Triangle &t2)
 	{
 		/* Arxika elegxoume an sygkrouontai ta bounding boxes. */
-		if (0)
+		if (!intersects(t1.box, t2.box))
 			return false;
 
 		/* Stin synexeia elegxoume akmh-akmh. */
@@ -287,8 +288,7 @@ public:
 			return true;
 
 		/* Telika den ypaarxei sygkrousi. */
-		else
-			return false;
+		else return false;
 	}
 
 };
