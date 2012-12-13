@@ -83,9 +83,14 @@ float Model::boxCoverage()
 				Line ray (Point(mBox.min.x+dx*x, mBox.min.y+dy*y, mBox.min.z+dz*z), ray_far);
 
 				vector<Triangle>::const_iterator ti;
-				for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti)
+				for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti){
+					if ((Geom::mkcode(ray.start, ti->getBox()) & 
+						 Geom::mkcode(ray.end,   ti->getBox())) != 0)
+						continue;
+
 					if (Geom::intersects(*ti, ray)) 
 						++intersectionsCount;
+				}
 
 				if (intersectionsCount%2 == 1) 
 					++voxelCount;

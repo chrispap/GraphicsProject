@@ -36,7 +36,7 @@ GlVisuals::GlVisuals()
 	m1->setSize(scene_size/2);
 	m1->reduce();
 	
-	//printf ("Kalypsi: %3.1f%% \n", m1->boxCoverage()*100);
+	printf ("Kalypsi: %3.1f%% \n", m1->boxCoverage()*100);
 
 	/* [Model_2] */
 	m2 = new Model("Model_2.obj", 1);
