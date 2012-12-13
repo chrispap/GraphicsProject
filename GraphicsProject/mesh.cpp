@@ -6,7 +6,7 @@
 #include <list>
 #include <set>
 #include <algorithm>
-#include "model.h"
+#include "mesh.h"
 #include "geom.h"
 
 #ifndef QT_CORE_LIB
@@ -21,32 +21,45 @@
 #endif
 
 /* Constructrors */
-Model::Model(string filename, bool ccw,  bool vt)
+Mesh::Mesh(string filename, bool ccw,  bool vt)
 {
 clock_t t = clock();
     loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
-printf ("Model loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+printf ("Mesh loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
-Model::Model(const Model &m1, const Model &m2, bool both)
+Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both)
 {
 clock_t t = clock();
 	findCollisions(m1, m2, mVertices, mTriangles, both);
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
-printf ("Model collision took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+printf ("Mesh collision took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
-Model::~Model()
+Mesh::Mesh(const Mesh &original)
+{
+	mVertices = original.mVertices;
+	mTriangles = original.mTriangles;
+	mVertexTriangles = original.mVertexTriangles;
+	mBox = original.mBox;
+
+	vector<Triangle>::iterator ti;
+	for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) 
+		ti->vecList = &mVertices;
+
+}
+
+Mesh::~Mesh()
 {
 
 }
 
-void Model::createBoundingBox()
+void Mesh::createBoundingBox()
 {
     Point boxMin,boxMax;
 	boxMin.x = boxMin.y = boxMin.z = FLT_MAX;
@@ -65,7 +78,7 @@ void Model::createBoundingBox()
 	mBox = Box(boxMin, boxMax);
 }
 
-float Model::boxCoverage()
+float Mesh::boxCoverage()
 {
 	int voxelCount=0, intersectionsCount;
 	Point ray_far = Point(mBox.max).scale(3);
@@ -101,10 +114,11 @@ float Model::boxCoverage()
 		printf("%3d%%", perc);
 	}
 
+	cout << endl;
 	return (float)(voxelCount) / (xm*ym*zm);
 }
 
-void Model::createTriangleLists()
+void Mesh::createTriangleLists()
 {
 	mVertexTriangles.clear();
 	mVertexTriangles.resize(mVertices.size());
@@ -118,14 +132,14 @@ void Model::createTriangleLists()
 	}
 }
 
-void Model::updateTriangleData()
+void Mesh::updateTriangleData()
 {
     vector<Triangle>::iterator ti;
     for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) 
         ti->update();
 }
 
-void Model::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt)
+void Mesh::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt)
 {
     Point v;
     int f1, f2, f3;
@@ -154,7 +168,7 @@ void Model::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vecto
     fclose(objfile);
 }
 
-void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both)
+void Mesh::findCollisions(const Mesh &m1, const Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both)
 {
 	//TODO Eliminate vertex repetition
 	
@@ -201,7 +215,7 @@ void Model::findCollisions(const Model &m1, const Model &m2, vector<Point> &vert
 }
 
 /* Editing */
-void Model::setSize(float size)
+void Mesh::setSize(float size)
 {
     float s = size / (max(mBox.max.x-mBox.min.x,
                           max(mBox.max.y-mBox.min.y,
@@ -215,7 +229,17 @@ void Model::setSize(float size)
 	updateTriangleData();
 }
 
-void Model::alingCornerToOrigin()
+void Mesh::translate(const Point &p)
+{
+	vector<Point>::iterator vi;
+	for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
+		vi->add(p);
+
+	mBox.add(p);
+	updateTriangleData();
+}
+
+void Mesh::alingCornerToOrigin()
 {
     vector<Point>::iterator vi;
     for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
@@ -225,7 +249,7 @@ void Model::alingCornerToOrigin()
 	updateTriangleData();
 }
 
-void Model::alingCenterToOrigin()
+void Mesh::alingCenterToOrigin()
 {
 	Point c2(mBox.max);
 	Point c1(mBox.min);
@@ -241,11 +265,11 @@ void Model::alingCenterToOrigin()
 	updateTriangleData();
 }
 
-void Model::reduce(int LoD)
+void Mesh::reduce(int LoD)
 {
  clock_t t = clock();
-	set<int> procList;		// List with triangles to process
-	set<int>::iterator pli;	// Iterator to procList
+	set<unsigned short> procList;		// List with triangles to process
+	set<unsigned short>::iterator pli;	// Iterator to procList
 	int ti, tx;				// Indices of triangles to delete
 	
 	/* Populate triangle list with all the triangles */
@@ -263,9 +287,9 @@ void Model::reduce(int LoD)
 		/*1. Pick two vertices that will form the collapsing edge */
 		int vk = mTriangles[ti].vi1;				// Vertex we keep of the collapsing edge
 		int vx = mTriangles[ti].vi2;				// Vertex we discard of the collapsing edge
-		set<int> &vkList = mVertexTriangles[vk];	// Reference to vertex's Vk triangle list
-		set<int> &vxList = mVertexTriangles[vx];	// Reference to vertex's Vx triangle list
-		set<int>::iterator vkLi, vxLi;				// Iterators for vertex triangle lists
+		set<unsigned short> &vkList = mVertexTriangles[vk];	// Reference to vertex's Vk triangle list
+		set<unsigned short> &vxList = mVertexTriangles[vx];	// Reference to vertex's Vx triangle list
+		set<unsigned short>::iterator vkLi, vxLi;				// Iterators for vertex triangle lists
 
 		/*2. Find the second triangle, apart ti, with edge [vk,vx]=tx */
 		vxLi = vxList.begin();
@@ -317,11 +341,11 @@ void Model::reduce(int LoD)
 
 	createTriangleLists();
 	updateTriangleData();
- printf ("Model reduction took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+ printf ("Mesh reduction took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 /* Drawing */
-void Model::drawTriangles(bool wire)
+void Mesh::drawTriangles(bool wire)
 {
 	glPolygonMode(GL_FRONT_AND_BACK, wire? GL_LINE: GL_FILL);
 	glBegin(GL_TRIANGLES);
@@ -334,14 +358,14 @@ void Model::drawTriangles(bool wire)
     glEnd();
 }
 
-void Model::drawTriangleBoxes()
+void Mesh::drawTriangleBoxes()
 {
     vector<Triangle>::const_iterator ti;
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti)
 		ti->getBox().draw();
 }
 
-void Model::drawNormals()
+void Mesh::drawNormals()
 {
     glBegin(GL_LINES);
     vector<Triangle>::const_iterator ti;
@@ -354,12 +378,12 @@ void Model::drawNormals()
     return;
 }
 
-void Model::drawAABB()
+void Mesh::drawAABB()
 {
 	mBox.draw();
 }
 
-void Model::draw(int x)
+void Mesh::draw(int x)
 {
     if (x & (1<<0)) drawTriangles(0);
 	

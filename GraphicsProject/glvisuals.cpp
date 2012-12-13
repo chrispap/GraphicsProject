@@ -4,7 +4,7 @@
 #include <string>
 #include <math.h>
 #include "glvisuals.h"
-#include "model.h"
+#include "mesh.h"
 
 #ifndef QT_CORE_LIB
 #ifdef __linux__
@@ -23,45 +23,62 @@ const float GlVisuals::PI=3.14159;
 
 GlVisuals::GlVisuals()
 {
-    /*Init params */
+/*Init params */
 	milli0 = -1;
 	t = 0.0;
     perspective_proj = 1;
     scene_size = 100;
 
-    /* Load Models */
-	/* [Model_1] */
-	m1 = new Model("Model_1.obj", 1);
-	m1->alingCenterToOrigin();
-	m1->setSize(scene_size/2);
-	m1->reduce();
+/* Load Mesh 1 */
+	armadillo[0] = new Mesh("Model_1.obj", 1);
+	armadillo[0]->alingCenterToOrigin();
+	armadillo[0]->setSize(scene_size/2);
 	
-	printf ("Kalypsi: %3.1f%% \n", m1->boxCoverage()*100);
+	for (int i=1; i<5; ++i) {
+		armadillo[i] = new Mesh(*armadillo[i-1]);
+		armadillo[i]->reduce();
+	}
 
-	/* [Model_2] */
-	m2 = new Model("Model_2.obj", 1);
-	m2->alingCenterToOrigin();
-	m2->setSize(scene_size);
-	m2->reduce();
+	float t = armadillo[0]->getBox().getZSize();
 
-	//printf ("Kalypsi: %3.1f%% \n", m2->boxCoverage()*100);
+	for (int i=0; i<5; ++i) {
+		armadillo[i]->translate(Point( 0,0, t*(2-i)));
+	}
 
-	/* [Intersection of model 1,2] */
-	m12 = new Model(*m1, *m2, 1);
+	cout << endl;
 
-    /* Set viewing angle | zoom */
+/* Load Mesh 2 */
+	car[0] = new Mesh("Model_2.obj", 1);
+	car[0]->alingCenterToOrigin();
+	car[0]->setSize(scene_size/3);
+		
+	for (int i=1; i<5; ++i) {
+		car[i] = new Mesh(*car[i-1]);
+		car[i]->reduce();
+	}
+
+	for (int i=0; i<5; ++i) {
+		car[i]->translate(Point( 0,0, t*(2-i)));
+	}
+
+	cout << endl;
+
+/* Create new model from the intersections of models 1,2 */
+	for (int i=0; i<5; ++i) {
+		intersection[i] = new Mesh(*armadillo[i], *car[i], 1);
+	}
+	
+/* Set viewing angle | zoom */
     setXRotation(0);
     setYRotation(180);
     setZRotation(0);
-    setDistancePercent(49);
+    setDistancePercent(45);
     setHeightPercent(50);
 }
 
 GlVisuals::~GlVisuals()
 {
-	delete m1;
-	delete m2;
-	delete m12;
+	// delete models
 }
 
 /* OpenGL Callback Methods */
@@ -71,8 +88,8 @@ void GlVisuals::glPaint()
 	glClear(GL_DEPTH_BUFFER_BIT );
 	glMatrixMode(GL_MODELVIEW);
 	
-	//static const int th0 = yRot;
-	//setYRotation(th0+t*30);
+	/*static const int th0 = yRot;
+	setYRotation(th0+t*30);*/
 	
 	/* Apply camera transformations */
 	glLoadIdentity();
@@ -85,15 +102,17 @@ void GlVisuals::glPaint()
 	GLubyte c = 0x66;
 	drawAxes();
 	
-	glColor3ub(c,c,0);
-	m1->draw( SOLID | WIRE | AABB);
-	
-	glColor3ub(0,c,c);
-	m2->draw( SOLID | WIRE | AABB);
-	
-	glColor3ub(c,0,c);
-	m12->draw( SOLID );
-	
+	for (int i=0; i<5; ++i) {
+		glColor3ub(c,c,0);
+		armadillo[i]->draw(  SOLID | WIRE | AABB);
+
+		glColor3ub(0,c,c);
+		car[i]->draw( SOLID | WIRE | AABB);
+
+		glColor3ub(c,0,c);
+		intersection[i]->draw( SOLID );
+	}
+
 }
 
 void GlVisuals::glInitialize()

@@ -1,7 +1,7 @@
 #ifndef VISUALS_H
 #define VISUALS_H
 
-#include "model.h"
+#include "mesh.h"
 
 class GlVisuals
 {
@@ -17,9 +17,9 @@ class GlVisuals
     float scene_height;
     float t;
     int milli0;
-	Model *m1;
-	Model *m2;
-	Model *m12;
+	Mesh *armadillo[5];
+	Mesh *car[5];
+	Mesh *intersection[5];
     void drawAxes();
     
 public:

@@ -1,5 +1,5 @@
-#ifndef MODEL_H
-#define MODEL_H
+#ifndef MESH_H
+#define MESH_H
 
 #include <vector>
 #include <string>
@@ -25,12 +25,12 @@ using namespace std;
 #define AABB		(1<<3)
 #define TBOXES		(1<<4)
 
-class Model
+class Mesh
 {
 	Box mBox;							// The bounding box of the 3d model
 	vector<Point> mVertices;			// Vertex list
 	vector<Triangle> mTriangles;		// Triangle list | contains indices to the Vertex list
-	vector<set<int> > mVertexTriangles;	// List of lists of the triangles that are connected to each vertex
+	vector<set<unsigned short> > mVertexTriangles;	// List of lists of the triangles that are connected to each vertex
 
 	void createBoundingBox ();
 	void createTriangleLists ();
@@ -41,18 +41,20 @@ class Model
 	void drawAABB ();
 
 	static void loadTrianglesFromOBJ (string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt=0);
-	static void findCollisions (const Model &m1, const Model &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
+	static void findCollisions (const Mesh &m1, const Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
 
 public:
-	Model (string filename, bool ccw=0, bool vt=0);
-	Model (const Model &m1, const Model &m2, bool intersectBoth=0);
-	~Model (void);
+	Mesh (string filename, bool ccw=0, bool vt=0);
+	Mesh (const Mesh &m1, const Mesh &m2, bool intersectBoth=0);
+	Mesh (const Mesh &original);
+	~Mesh (void);
 
 	Box &getBox (){ return mBox;};
 	float boxCoverage();
 	void alingCornerToOrigin ();
 	void alingCenterToOrigin ();
 	void setSize (float size);
+	void translate (const Point &p);
     void reduce (int LoD=1);
 	void draw (int x);
 };

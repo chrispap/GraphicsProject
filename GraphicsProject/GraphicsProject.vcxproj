@@ -79,13 +79,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="model.cpp" />
     <ClCompile Include="glvisuals.cpp" />
+    <ClCompile Include="mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="geom.h" />
-    <ClInclude Include="model.h" />
     <ClInclude Include="glvisuals.h" />
+    <ClInclude Include="mesh.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
