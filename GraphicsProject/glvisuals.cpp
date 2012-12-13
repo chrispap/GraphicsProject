@@ -30,6 +30,7 @@ GlVisuals::GlVisuals()
     scene_size = 100;
 
 /* Load Mesh 1 */
+	cout << " * Armadillo * " << endl;
 	armadillo[0] = new Mesh("Model_1.obj", 1);
 	armadillo[0]->alingCenterToOrigin();
 	armadillo[0]->setSize(scene_size/2);
@@ -48,6 +49,7 @@ GlVisuals::GlVisuals()
 	cout << endl;
 
 /* Load Mesh 2 */
+	cout << " * Car * " << endl;
 	car[0] = new Mesh("Model_2.obj", 1);
 	car[0]->alingCenterToOrigin();
 	car[0]->setSize(scene_size/3);
@@ -64,6 +66,7 @@ GlVisuals::GlVisuals()
 	cout << endl;
 
 /* Create new model from the intersections of models 1,2 */
+	cout << " * Respective Intersections * " << endl;
 	for (int i=0; i<5; ++i) {
 		intersection[i] = new Mesh(*armadillo[i], *car[i], 1);
 	}
@@ -119,7 +122,7 @@ void GlVisuals::glInitialize()
 {
     GLfloat ambientLight[] = { 1.0, 1.0, 1.0, 1.0 };
     GLfloat diffuseLight[] = { 1.0, 1.0, 1.0, 1.0 };
-	GLfloat lightPos[] = { 0.0, 0.0, -scene_size, 0.0 };
+	GLfloat lightPos[] = { 0.0, -scene_size, 0.0, 0.0 };
 
     glLightfv( GL_LIGHT0, GL_AMBIENT, ambientLight );
     glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseLight );
@@ -130,8 +133,8 @@ void GlVisuals::glInitialize()
     glDepthFunc( GL_LEQUAL );
     glClearDepth(1.0);
 	
-	//glEnable (GL_BLEND);
-	//glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_CULL_FACE);
 	//glEnable(GL_LINE_SMOOTH);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

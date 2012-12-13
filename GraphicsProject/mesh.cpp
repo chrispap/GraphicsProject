@@ -38,7 +38,7 @@ clock_t t = clock();
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
-printf ("Mesh collision took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Mesh::Mesh(const Mesh &original)
@@ -341,7 +341,7 @@ void Mesh::reduce(int LoD)
 
 	createTriangleLists();
 	updateTriangleData();
- printf ("Mesh reduction took:\t%4.2f sec | %d triangles.\n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+ printf ("Mesh reduction took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 /* Drawing */
