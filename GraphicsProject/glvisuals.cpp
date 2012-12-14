@@ -37,7 +37,8 @@ GlVisuals::GlVisuals()
 	armadillo[0] = new Mesh("Model_1.obj", 0, 0);
 	armadillo[0]->alignLocalCenter();
 	armadillo[0]->setSize(scene_size/2);
-	for (int i=1; i<5; ++i) (armadillo[i] = new Mesh(*armadillo[i-1]))->reduce();
+	for (int i=1; i<5; ++i) 
+		(armadillo[i] = new Mesh(*armadillo[i-1]))->reduce();
 	cout << endl;
 
 	/* Load Mesh 2 */
@@ -45,17 +46,20 @@ GlVisuals::GlVisuals()
 	car[0] = new Mesh("Model_2.obj", 1, 0);
 	car[0]->alignLocalCenter();
 	car[0]->setSize(scene_size/3);
-	for (int i=1; i<5; ++i) (car[i] = new Mesh(*car[i-1]))->reduce();
+	for (int i=1; i<5; ++i) 
+		(car[i] = new Mesh(*car[i-1]))->reduce();
 	cout << endl;
 
 	/* Create empty meshes */
-	for (int i=0; i<5; ++i) intersection[i] = new Mesh();
+	for (int i=0; i<5; ++i) 
+		intersection[i] = new Mesh();
 	
-	/* Translate respective meshes */
-	float t = armadillo[0]->getBox().getZSize();
+	/* Translate meshes */
+	float zt = armadillo[0]->getBox().getZSize();
+	float xt = armadillo[0]->getBox().getXSize()/2;
 	for (int i=0; i<5; ++i) {
-		armadillo[i] -> setLocalTranslation(Point( 0,0, -t*(2-i)));
-		car[i] -> setLocalTranslation(Point( 0,0, -t*(2-i)));
+		armadillo[i] -> translate(Point( xt, 0, -zt*(2-i)));
+		car[i] -> translate(Point( -xt, 0, -zt*(2-i)));
 	}
 	
 	/* Set viewing angle | zoom */
@@ -69,7 +73,11 @@ GlVisuals::GlVisuals()
 
 GlVisuals::~GlVisuals()
 {
-	// delete models
+	for (int i=0; i<5; ++i) {
+		delete armadillo[i];
+		delete car[i];
+		delete intersection[i];
+	}
 }
 
 void GlVisuals::makeIntersections()
@@ -79,40 +87,15 @@ void GlVisuals::makeIntersections()
 	float t = armadillo[0]->getBox().getZSize();
 	
 	if (selObj>=0) {
-		for (int i=selObj; i<=selObj; ++i) {
+		for (int i=0; i<5; ++i) {
 			delete intersection[i];
-			intersection[i] = new Mesh(*armadillo[i], *car[i], 1);
-			intersection[i]-> setLocalTranslation(Point( 0,0, -t*(2-i)));
+			intersection[i] = new Mesh(*armadillo[selObj], *car[i], 1);
+			//intersection[i]-> setLocalTranslation(Point( 0,0, -t*(2-i)));
 		}
 	}
 }
 
 /* OpenGL Callback Methods */
-void GlVisuals::glPaint()
-{
-	glClear(GL_COLOR_BUFFER_BIT );
-	glClear(GL_DEPTH_BUFFER_BIT );
-	glMatrixMode(GL_MODELVIEW);
-	
-	glLoadIdentity();	
-
-	/* Push the world away from the camera */
-	glTranslatef(0,0, -scene_dist);
-	
-	/* Draw scene objects */
-	glPushMatrix();
-	
-	/* Apply global transformations */
-	glRotatef(globalRot.x, 1, 0, 0);
-	glRotatef(globalRot.y, 0, 1, 0);
-	glRotatef(globalRot.z, 0, 0, 1);
-	glPushMatrix();
-	glTranslatef(globalTranslation.x, globalTranslation.y, globalTranslation.z);
-	drawScene();
-	glPopMatrix();
-	glPopMatrix();
-}
-
 void GlVisuals::glInitialize()
 {
     GLfloat ambientLight[] = { 1.0, 1.0, 1.0, 1.0 };
@@ -162,20 +145,37 @@ void GlVisuals::glResize(int w, int h)
     }
 }
 
+void GlVisuals::glPaint()
+{
+	glClear(GL_COLOR_BUFFER_BIT );
+	glClear(GL_DEPTH_BUFFER_BIT );
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	/* Apply global transformations */
+	glTranslatef(globalTranslation.x, globalTranslation.y, globalTranslation.z-scene_dist);
+	glRotatef(globalRot.x, 1, 0, 0);
+	glRotatef(globalRot.y, 0, 1, 0);
+	glRotatef(globalRot.z, 0, 0, 1);
+	drawAxes();
+	drawScene();
+	
+}
+
 /* Drawing Methods */
 void GlVisuals::drawAxes()
 {
     glBegin(GL_LINES);
     // [X]
-    glColor3f(1.0, 0.0, 0.0);
+    glColor3ub(0xFF, 0, 0);
     glVertex2f(0.0,0.0);
     glVertex2f(10.0*scene_size,0.0);
     // [Y]
-    glColor3f(0.0, 1.0, 0.0);
+    glColor3f(0, 0xFF, 0);
     glVertex2f(0.0,0.0);
     glVertex2f(0.0,10.0*scene_size);
     // [Z]
-    glColor3f(0.0, 0.0, 1.0);
+    glColor3f(0, 0, 0xFF);
     glVertex2f(0.0,0.0);
     glVertex3f(0.0,0.0,10.0*scene_size);
 
@@ -185,16 +185,11 @@ void GlVisuals::drawAxes()
 void GlVisuals::drawScene()
 {
 	GLubyte c = 0x66;
-	drawAxes();
+	Colour col(c,c,c);
 	for (int i=0; i<5; ++i) {
-		glColor3ub(c,c,0);
-		armadillo[i]->draw( SOLID | 0 | (i==selObj?AABB:0));
-		
-		glColor3ub(0,c,c);
-		car[i]->draw( SOLID | 0 | (i==selObj?AABB:0));
-		
-		glColor3ub(c,0,c);
-		intersection[i]->draw( SOLID | WIRE);
+		armadillo[i] ->    draw(Colour(c,c,0), SOLID | (i==selObj?AABB:0));
+		car[i] ->          draw(Colour(0,c,c), SOLID );
+		intersection[i] -> draw(Colour(c,0,c), SOLID | WIRE);
 	}
 }
 
@@ -276,9 +271,6 @@ void GlVisuals::mouseMoved(int x, int y, int modif)
 
 void GlVisuals::mouseWheel(int dir, int modif)
 {
-	bool ctrl  = modif & 1;
-	bool shift = modif & 2;
-	
 	if (selObj < 0) 
 	{
 		Point &t = globalTranslation;
@@ -292,14 +284,12 @@ void GlVisuals::mouseWheel(int dir, int modif)
 		e = dir? e - scene_size/20: e + scene_size/20;
 		
 		armadillo[selObj]->translate(t);
-		//car[selObj]->setLocalTranslation(t);
-		//intersection[selObj]->setLocalTranslation(t);
 	}
 }
 
 void GlVisuals::keyEvent (unsigned char key, int x, int y, bool up)
 {
-	key = std::tolower(key);
+	key = tolower(key);
 	
 	if (up) selObj = -1;
 	else {
@@ -314,8 +304,8 @@ void GlVisuals::arrowEvent (int dir, int modif)
 	if (selObj<0) 
 	{
 		Point &t = globalTranslation;
-		float &e = dir&2? t.z  // left-right
-						: t.x; // up-down
+		float &e = dir&2? t.x  // left-right
+						: t.z; // up-down
 		e = dir&1? e - scene_size/20: e + scene_size/20;
 	}
 	else
@@ -325,6 +315,5 @@ void GlVisuals::arrowEvent (int dir, int modif)
 						: t.x; // up-down
 		e = dir&1? e - scene_size/20: e + scene_size/20;
 		armadillo[selObj]->translate(t);
-		makeIntersections();
 	}
 }

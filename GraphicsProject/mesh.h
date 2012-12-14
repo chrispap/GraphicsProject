@@ -25,6 +25,19 @@ using namespace std;
 #define AABB		(1<<3)
 #define TBOXES		(1<<4)
 
+struct Colour {
+	union {	
+		struct { unsigned char r, g, b;};
+		unsigned char data[3];
+	};
+
+	Colour (unsigned char _r, unsigned char _g, unsigned char _b){
+		r=_r;
+		g=_g;
+		b=_b;
+	}
+};
+
 class Mesh
 {
 	Box mBox;										// The bounding box of the 3d model
@@ -37,7 +50,7 @@ class Mesh
 	void createBoundingBox ();
 	void createTriangleLists ();
 	void updateTriangleData ();
-	void drawTriangles (bool wire=0);
+	void drawTriangles (const Colour &col, bool wire=0);
 	void drawTriangleBoxes ();
 	void drawNormals ();
 	void drawAABB ();
@@ -59,7 +72,7 @@ public:
 	void translate (const Point &p);
 	void setLocalTranslation (const Point &p);
     void reduce (int LoD=1);
-	void draw (int x);
+	void draw (const Colour &col, int x);
 	
 	const Point &getLocalTranslation() const { return localTranslation;};
 	const Point &getLocalRotation() const { return localRot;};

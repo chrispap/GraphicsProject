@@ -27,37 +27,39 @@ void Resize(int w, int h)
 	visuals->glResize(w, h);
 }
 
-int Modif()
+void Modif(int *modif)
 {
-	int modif = glutGetModifiers();
-	unsigned char ctrl =  (modif & GLUT_ACTIVE_CTRL)?  1: 0;
-	unsigned char shift = (modif & GLUT_ACTIVE_SHIFT)? 1: 0;
-	return (shift<<1) | (ctrl<<0);
+	unsigned char ctrl =  (*modif & GLUT_ACTIVE_CTRL)?  1: 0;
+	unsigned char shift = (*modif & GLUT_ACTIVE_SHIFT)? 1: 0;
+	*modif = (shift<<1) | (ctrl<<0);
 }
 
 void mouseEvent(int button, int state, int x, int y)
 {
+	int modif = glutGetModifiers();
+	Modif(&modif);
 	if (state == GLUT_UP) 
 		return;	
 	
 	if ((button == 3) || (button == 4)) { // Wheel event
-		visuals->mouseWheel(button==3, Modif());
+		
+		visuals->mouseWheel(button==3, modif);
 		glutPostRedisplay();
 	
 	} else { // Click event
-		visuals->mousePressed(x,y);
+		visuals->mousePressed(x,y, modif);
 	}
 }
 
 void mouseMotion(int x, int y)
 {
-	int modif = glutGetModifiers();
-	visuals->mouseMoved(x,y, Modif());
+	visuals->mouseMoved(x,y);
 	glutPostRedisplay();
 }
 
 void KeyEvent(unsigned char key, int x, int y, bool updown)
 {
+	if (key==27 || key == 'c' || key == 'q') exit(0);
 	visuals->keyEvent(key, x, y, updown);
 	glutPostRedisplay();
 }
@@ -74,10 +76,13 @@ void KeyDownEvent(unsigned char key, int x, int y)
 
 void SpeciaEvent (int key, int x, int y)
 {
-	if      (key == GLUT_KEY_UP) visuals->arrowEvent(0, Modif());
-	else if (key == GLUT_KEY_DOWN) visuals->arrowEvent(1, Modif());
-	else if (key == GLUT_KEY_RIGHT) visuals->arrowEvent(2, Modif());
-	else if (key == GLUT_KEY_LEFT) visuals->arrowEvent(3, Modif());
+	int modif = glutGetModifiers();
+	Modif(&modif);
+
+	if      (key == GLUT_KEY_UP) visuals->arrowEvent(0, modif);
+	else if (key == GLUT_KEY_DOWN) visuals->arrowEvent(1, modif);
+	else if (key == GLUT_KEY_RIGHT) visuals->arrowEvent(2, modif);
+	else if (key == GLUT_KEY_LEFT) visuals->arrowEvent(3, modif);
 	else return;
 	
 	glutPostRedisplay();
@@ -103,12 +108,11 @@ int main(int argc, char* argv[])
 	glutKeyboardUpFunc(KeyUpEvent);
 	glutSpecialFunc(SpeciaEvent);
 	
-	
 	/* Init our "scene's" OpenGL Parameters */
     visuals->glInitialize();
 	
 	/* Enter main loop */
-	//glutFullScreen();
+	
 	glutMainLoop();
 	
 	return 0;
