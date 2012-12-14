@@ -27,11 +27,13 @@ using namespace std;
 
 class Mesh
 {
-	Box mBox;							// The bounding box of the 3d model
-	vector<Point> mVertices;			// Vertex list
-	vector<Triangle> mTriangles;		// Triangle list | contains indices to the Vertex list
+	Box mBox;										// The bounding box of the 3d model
+	vector<Point> mVertices;						// Vertex list
+	vector<Triangle> mTriangles;					// Triangle list | contains indices to the Vertex list
 	vector<set<unsigned short> > mVertexTriangles;	// List of lists of the triangles that are connected to each vertex
-
+	
+	Point localRot, localTranslation;
+	
 	void createBoundingBox ();
 	void createTriangleLists ();
 	void updateTriangleData ();
@@ -44,19 +46,24 @@ class Mesh
 	static void findCollisions (const Mesh &m1, const Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
 
 public:
+	Mesh ();
 	Mesh (string filename, bool ccw=0, bool vt=0);
 	Mesh (const Mesh &m1, const Mesh &m2, bool intersectBoth=0);
 	Mesh (const Mesh &original);
 	~Mesh (void);
 
-	Box &getBox (){ return mBox;};
 	float boxCoverage();
-	void alingCornerToOrigin ();
-	void alingCenterToOrigin ();
+	void alignLocalCorner ();
+	void alignLocalCenter ();
 	void setSize (float size);
 	void translate (const Point &p);
+	void setLocalTranslation (const Point &p);
     void reduce (int LoD=1);
 	void draw (int x);
+	
+	const Point &getLocalTranslation() const { return localTranslation;};
+	const Point &getLocalRotation() const { return localRot;};
+	const Box &getBox () const { return mBox;};
 };
 
 #endif

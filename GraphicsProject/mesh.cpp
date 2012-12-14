@@ -21,6 +21,11 @@
 #endif
 
 /* Constructrors */
+Mesh::Mesh()
+{
+	
+}
+
 Mesh::Mesh(string filename, bool ccw,  bool vt)
 {
 clock_t t = clock();
@@ -28,6 +33,10 @@ clock_t t = clock();
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
+	
+	localRot = Point(0,0,0);
+	localTranslation = Point(0,0,0);
+	
 printf ("Mesh loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
@@ -38,6 +47,10 @@ clock_t t = clock();
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
+	
+	localRot = Point(0,0,0);
+	localTranslation = Point(0,0,0);
+	
 printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
@@ -170,8 +183,9 @@ void Mesh::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector
 
 void Mesh::findCollisions(const Mesh &m1, const Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both)
 {
-	//TODO Eliminate vertex repetition
+	if (!Geom::intersects (m1.getBox(), m2.getBox())) return;
 	
+	//TODO Eliminate vertex repetition
 	vector<Triangle> const &m1t = m1.mTriangles;
 	vector<Triangle> const &m2t = m2.mTriangles;
 	
@@ -239,7 +253,7 @@ void Mesh::translate(const Point &p)
 	updateTriangleData();
 }
 
-void Mesh::alingCornerToOrigin()
+void Mesh::alignLocalCorner()
 {
     vector<Point>::iterator vi;
     for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
@@ -249,7 +263,7 @@ void Mesh::alingCornerToOrigin()
 	updateTriangleData();
 }
 
-void Mesh::alingCenterToOrigin()
+void Mesh::alignLocalCenter()
 {
 	Point c2(mBox.max);
 	Point c1(mBox.min);
@@ -344,6 +358,12 @@ void Mesh::reduce(int LoD)
  printf ("Mesh reduction took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
+/* Transformations */
+void Mesh::setLocalTranslation (const Point &p)
+{
+	localTranslation = p;
+}
+
 /* Drawing */
 void Mesh::drawTriangles(bool wire)
 {
@@ -351,6 +371,7 @@ void Mesh::drawTriangles(bool wire)
 	glBegin(GL_TRIANGLES);
     vector<Triangle>::const_iterator ti;
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
+		glNormal3fv(ti->getNormal().data);
 		glVertex3fv(ti->v1().data);
 		glVertex3fv(ti->v2().data);
 		glVertex3fv(ti->v3().data);		
@@ -385,6 +406,13 @@ void Mesh::drawAABB()
 
 void Mesh::draw(int x)
 {
+	glPushMatrix();
+	
+	glTranslatef(localTranslation.x, localTranslation.y, localTranslation.z);
+	glRotatef(localRot.x, 1, 0, 0);
+	glRotatef(localRot.y, 0, 1, 0);
+	glRotatef(localRot.z, 0, 0, 1);
+	
     if (x & (1<<0)) drawTriangles(0);
 	
 	glColor3ub(0,0,0);
@@ -396,4 +424,6 @@ void Mesh::draw(int x)
 	if (x & (1<<3)) drawAABB();
 	
 	if (x & (1<<4)) drawTriangleBoxes();
+	
+	glPopMatrix();
 }

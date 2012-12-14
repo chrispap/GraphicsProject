@@ -23,65 +23,68 @@ const float GlVisuals::PI=3.14159;
 
 GlVisuals::GlVisuals()
 {
-/*Init params */
+	/*Init params */
 	milli0 = -1;
 	t = 0.0;
     perspective_proj = 1;
     scene_size = 100;
+    scene_dist = scene_size;
+    selObj = -1;
+    selT = 'z';
 
-/* Load Mesh 1 */
+	/* Load Mesh 1 */
 	cout << " * Armadillo * " << endl;
-	armadillo[0] = new Mesh("Model_1.obj", 1);
-	armadillo[0]->alingCenterToOrigin();
+	armadillo[0] = new Mesh("Model_1.obj", 0, 0);
+	armadillo[0]->alignLocalCenter();
 	armadillo[0]->setSize(scene_size/2);
-	
-	for (int i=1; i<5; ++i) {
-		armadillo[i] = new Mesh(*armadillo[i-1]);
-		armadillo[i]->reduce();
-	}
-
-	float t = armadillo[0]->getBox().getZSize();
-
-	for (int i=0; i<5; ++i) {
-		armadillo[i]->translate(Point( 0,0, t*(2-i)));
-	}
-
+	for (int i=1; i<5; ++i) (armadillo[i] = new Mesh(*armadillo[i-1]))->reduce();
 	cout << endl;
 
-/* Load Mesh 2 */
+	/* Load Mesh 2 */
 	cout << " * Car * " << endl;
-	car[0] = new Mesh("Model_2.obj", 1);
-	car[0]->alingCenterToOrigin();
+	car[0] = new Mesh("Model_2.obj", 1, 0);
+	car[0]->alignLocalCenter();
 	car[0]->setSize(scene_size/3);
-		
-	for (int i=1; i<5; ++i) {
-		car[i] = new Mesh(*car[i-1]);
-		car[i]->reduce();
-	}
-
-	for (int i=0; i<5; ++i) {
-		car[i]->translate(Point( 0,0, t*(2-i)));
-	}
-
+	for (int i=1; i<5; ++i) (car[i] = new Mesh(*car[i-1]))->reduce();
 	cout << endl;
 
-/* Create new model from the intersections of models 1,2 */
-	cout << " * Respective Intersections * " << endl;
+	/* Create empty meshes */
+	for (int i=0; i<5; ++i) intersection[i] = new Mesh();
+	
+	/* Translate respective meshes */
+	float t = armadillo[0]->getBox().getZSize();
 	for (int i=0; i<5; ++i) {
-		intersection[i] = new Mesh(*armadillo[i], *car[i], 1);
+		armadillo[i] -> setLocalTranslation(Point( 0,0, -t*(2-i)));
+		car[i] -> setLocalTranslation(Point( 0,0, -t*(2-i)));
 	}
 	
-/* Set viewing angle | zoom */
-    setXRotation(0);
-    setYRotation(180);
-    setZRotation(0);
-    setDistancePercent(45);
-    setHeightPercent(50);
+	/* Set viewing angle | zoom */
+    setGlobalXRotation(0);
+    setGlobalYRotation(90);
+    setGlobalZRotation(60);
+    setGlobalXTranslation(0);
+    setGlobalYTranslation(0);
+    setGlobalZTranslation(0);
 }
 
 GlVisuals::~GlVisuals()
 {
 	// delete models
+}
+
+void GlVisuals::makeIntersections()
+{
+	cout << " * Intersections * " << endl;
+	
+	float t = armadillo[0]->getBox().getZSize();
+	
+	if (selObj>=0) {
+		for (int i=selObj; i<=selObj; ++i) {
+			delete intersection[i];
+			intersection[i] = new Mesh(*armadillo[i], *car[i], 1);
+			intersection[i]-> setLocalTranslation(Point( 0,0, -t*(2-i)));
+		}
+	}
 }
 
 /* OpenGL Callback Methods */
@@ -91,44 +94,37 @@ void GlVisuals::glPaint()
 	glClear(GL_DEPTH_BUFFER_BIT );
 	glMatrixMode(GL_MODELVIEW);
 	
-	/*static const int th0 = yRot;
-	setYRotation(th0+t*30);*/
-	
-	/* Apply camera transformations */
-	glLoadIdentity();
-	glTranslatef(0.0, scene_height,	scene_dist);
-	glRotated(xRot, 1.0, 0.0, 0.0);
-	glRotated(yRot, 0.0, 1.0, 0.0);
-	glRotated(zRot, 0.0, 0.0, 1.0);
+	glLoadIdentity();	
+
+	/* Push the world away from the camera */
+	glTranslatef(0,0, -scene_dist);
 	
 	/* Draw scene objects */
-	GLubyte c = 0x66;
-	drawAxes();
+	glPushMatrix();
 	
-	for (int i=0; i<5; ++i) {
-		glColor3ub(c,c,0);
-		armadillo[i]->draw(  SOLID | WIRE | AABB);
-
-		glColor3ub(0,c,c);
-		car[i]->draw( SOLID | WIRE | AABB);
-
-		glColor3ub(c,0,c);
-		intersection[i]->draw( SOLID );
-	}
-
+	/* Apply global transformations */
+	glRotatef(globalRot.x, 1, 0, 0);
+	glRotatef(globalRot.y, 0, 1, 0);
+	glRotatef(globalRot.z, 0, 0, 1);
+	glPushMatrix();
+	glTranslatef(globalTranslation.x, globalTranslation.y, globalTranslation.z);
+	drawScene();
+	glPopMatrix();
+	glPopMatrix();
 }
 
 void GlVisuals::glInitialize()
 {
     GLfloat ambientLight[] = { 1.0, 1.0, 1.0, 1.0 };
     GLfloat diffuseLight[] = { 1.0, 1.0, 1.0, 1.0 };
-	GLfloat lightPos[] = { 0.0, -scene_size, 0.0, 0.0 };
+	GLfloat lightPos[] = { 0.0, 0.0, -scene_size, 0.0 };
 
     glLightfv( GL_LIGHT0, GL_AMBIENT, ambientLight );
     glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseLight );
     glLightfv( GL_LIGHT0, GL_POSITION, lightPos );
 
     glShadeModel( GL_FLAT );
+    glEnable(GL_NORMALIZE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc( GL_LEQUAL );
     glClearDepth(1.0);
@@ -165,6 +161,7 @@ void GlVisuals::glResize(int w, int h)
         gluPerspective(60.0, aspect, 1.0, 100.0*scene_size);
     }
 }
+
 /* Drawing Methods */
 void GlVisuals::drawAxes()
 {
@@ -185,6 +182,22 @@ void GlVisuals::drawAxes()
     glEnd();
 }
 
+void GlVisuals::drawScene()
+{
+	GLubyte c = 0x66;
+	drawAxes();
+	for (int i=0; i<5; ++i) {
+		glColor3ub(c,c,0);
+		armadillo[i]->draw( SOLID | 0 | (i==selObj?AABB:0));
+		
+		glColor3ub(0,c,c);
+		car[i]->draw( SOLID | 0 | (i==selObj?AABB:0));
+		
+		glColor3ub(c,0,c);
+		intersection[i]->draw( SOLID | WIRE);
+	}
+}
+
 /* UI Methods */
 static void qNormalizeAngle(int &angle)
 {
@@ -194,35 +207,40 @@ static void qNormalizeAngle(int &angle)
         angle -= 360;
 }
 
-void GlVisuals::setXRotation(int angle)
+void GlVisuals::setGlobalXRotation(int angle)
 {
     qNormalizeAngle(angle);
-    if (angle != xRot)
-        xRot = angle;
+    if (angle != globalRot.x)
+        globalRot.x = angle;
 }
 
-void GlVisuals::setYRotation(int angle)
+void GlVisuals::setGlobalYRotation(int angle)
 {
     qNormalizeAngle(angle);
-    if (angle != yRot)
-        yRot = angle;
+    if (angle != globalRot.y)
+        globalRot.y = angle;
 }
 
-void GlVisuals::setZRotation(int angle)
+void GlVisuals::setGlobalZRotation(int angle)
 {
     qNormalizeAngle(angle);
-    if (angle != zRot)
-        zRot = angle;
+    if (angle != globalRot.z)
+        globalRot.z = angle;
 }
 
-void GlVisuals::setDistancePercent(int d)
+void GlVisuals::setGlobalXTranslation(int d)
 {
-    scene_dist = (((float)d-50)/100)*10*scene_size;
+    globalTranslation.x = d/100. * 10 * scene_size;
 }
 
-void GlVisuals::setHeightPercent(int h)
+void GlVisuals::setGlobalYTranslation(int d)
 {
-    scene_height = (((float)h-50)/100)*1*scene_size;
+    globalTranslation.y = d/100. * 10 * scene_size;
+}
+
+void GlVisuals::setGlobalZTranslation(int d)
+{
+    globalTranslation.z = d/100. * 3 * scene_size;
 }
 
 void GlVisuals::setEllapsedMillis(int millis)
@@ -233,30 +251,80 @@ void GlVisuals::setEllapsedMillis(int millis)
         t = ((millis-milli0)/1000.0);
 }
 
-void GlVisuals::mousePressed(int x, int y)
+void GlVisuals::mousePressed(int x, int y, int modif)
 {
     mouse_lastX = x;
     mouse_lastY = y;
 }
 
-void GlVisuals::mouseMoved(int x, int y, int dir)
+void GlVisuals::mouseMoved(int x, int y, int modif)
 {
     int dx = x - mouse_lastX;
     int dy = y - mouse_lastY;
 
-    if (!dir) {
-      setYRotation(yRot + 1 * (dx>>1));
-      setZRotation(zRot + 1 * (dy>>1));
+    if (!modif) {
+      setGlobalYRotation(globalRot.y + 1 * (dx>>1));
+      setGlobalZRotation(globalRot.z + 1 * (dy>>1));
     } else {
-      setYRotation(yRot + 1 * (dx>>1));
-      setXRotation(xRot + 1 * (dy>>1));
+      setGlobalYRotation(globalRot.y + 1 * (dx>>1));
+      setGlobalXRotation(globalRot.x + 1 * (dy>>1));
     }
 
     mouse_lastX = x;
     mouse_lastY = y;
 }
 
-void GlVisuals::mouseWheel(int dir)
+void GlVisuals::mouseWheel(int dir, int modif)
 {
-    scene_dist = dir? scene_dist*1.1: scene_dist/1.1;
+	bool ctrl  = modif & 1;
+	bool shift = modif & 2;
+	
+	if (selObj < 0) 
+	{
+		Point &t = globalTranslation;
+		float &e = selT=='x'? t.x : (selT=='y'? t.y: t.z);
+		e = dir? e - scene_size/20: e + scene_size/20;
+	}
+	else 
+	{
+		Point t(0,0,0);
+		float &e = selT=='x'? t.x : (selT=='y'? t.y: t.z);
+		e = dir? e - scene_size/20: e + scene_size/20;
+		
+		armadillo[selObj]->translate(t);
+		//car[selObj]->setLocalTranslation(t);
+		//intersection[selObj]->setLocalTranslation(t);
+	}
+}
+
+void GlVisuals::keyEvent (unsigned char key, int x, int y, bool up)
+{
+	key = std::tolower(key);
+	
+	if (up) selObj = -1;
+	else {
+		if (key>='x' && key <='z') selT = key;
+		else if (key>='1' && key <= '5') selObj = key-'0'-1;
+		else if (key=='i') makeIntersections();
+	}
+}
+
+void GlVisuals::arrowEvent (int dir, int modif)
+{
+	if (selObj<0) 
+	{
+		Point &t = globalTranslation;
+		float &e = dir&2? t.z  // left-right
+						: t.x; // up-down
+		e = dir&1? e - scene_size/20: e + scene_size/20;
+	}
+	else
+	{
+		Point t(0,0,0);
+		float &e = dir&2? t.z  // left-right
+						: t.x; // up-down
+		e = dir&1? e - scene_size/20: e + scene_size/20;
+		armadillo[selObj]->translate(t);
+		makeIntersections();
+	}
 }
