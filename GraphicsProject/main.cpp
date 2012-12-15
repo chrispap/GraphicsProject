@@ -57,21 +57,21 @@ void mouseMotion(int x, int y)
 	glutPostRedisplay();
 }
 
-void KeyEvent(unsigned char key, int x, int y, bool updown)
+void KeyEvent(unsigned char key, bool updown, int x, int y)
 {
 	if (key==27 ) exit(0);
-	visuals->keyEvent(key, x, y, updown);
+	visuals->keyEvent(key, updown, x, y);
 	glutPostRedisplay();
 }
 
 void KeyUpEvent(unsigned char key, int x, int y)
 {
-	KeyEvent(key, x, y, true);
+	KeyEvent(key, true, x, y);
 }
 
 void KeyDownEvent(unsigned char key, int x, int y)
 {
-	KeyEvent(key, x, y, false);
+	KeyEvent(key, false, x, y);
 }
 
 void SpeciaEvent (int key, int x, int y)
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 	visuals->glInitialize();
 
 	/* Enter main loop */
-
+	glutFullScreen();
 	glutMainLoop();
 
 	return 0;

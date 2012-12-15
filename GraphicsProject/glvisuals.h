@@ -28,8 +28,8 @@ class GlVisuals
 
 	void loadModels();
 	void intersectModels();
-	void drawAxes();
-	void drawScene();
+    inline void drawAxes();
+    inline void drawScene();
 
 	Mesh *armadillo[5];
 	Mesh *car[5];
@@ -45,10 +45,10 @@ public:
 	void setEllapsedMillis (int milliseconds);
     void setGlobalRotation (const Point &rotVec) {globalRot = rotVec;}
     void setGlobalTranslation (const Point &tVec) {globalTranslation = tVec;}
-    Point getGlobalRotation () {return globalRot;}
-    Point getGlobalTranslation () {return globalTranslation;}
+    const Point &getGlobalRotation () {return globalRot;}
+    const Point &getGlobalTranslation () {return globalTranslation;}
 
-	void keyEvent (unsigned char key, int x, int y, bool up);
+	void keyEvent (unsigned char key, bool up=false, int x=0, int y=0 );
 	void arrowEvent (int dir, int modif=0);
 	void mousePressed (int x, int y, int modif=0);
 	void mouseMoved (int x, int y, int modif=0);

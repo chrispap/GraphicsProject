@@ -1,18 +1,19 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <QWidget>
+#include <QMainWindow>
 #include <QSlider>
 #include "glwidget.h"
 
-class Window : public QWidget {
+class Window : public QMainWindow {
     Q_OBJECT
 
 public:
-    Window(QWidget *parent = 0);
+    Window();
     ~Window();
 
 private:
+    QWidget *centralWidget;
     GLWidget *glWidget;
     QSlider *xSlider;
     QSlider *ySlider;

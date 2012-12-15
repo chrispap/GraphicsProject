@@ -13,7 +13,6 @@
 #include "gl/glut.h"
 #endif
 #else
-#include <GL/gl.h>
 #include <GL/glu.h>
 #endif
 
@@ -22,15 +21,15 @@ using namespace std;
 const float GlVisuals::PI=3.14159;
 
 GlVisuals::GlVisuals():
-milli0 (-1),
-	t (0.0),
-	perspective_proj (1),
-	scene_size (100),
-	scene_dist (scene_size),
+    globalTranslation (0,0,0),
+    globalRot (0,0,0),
+    perspective_proj (1),
+    scene_size (100),
+    scene_dist (scene_size),
 	selObj (-1),
 	selT ('z'),
-	globalRot (0,90,0),
-	globalTranslation (0,0,0)
+    milli0 (-1),
+    t (0.0)
 {
 	loadModels();
 }
@@ -101,25 +100,25 @@ void GlVisuals::intersectModels()
 //[1] OpenGL Callback Methods 
 void GlVisuals::glInitialize()
 {
-	GLfloat ambientLight[] = { 1.0, 1.0, 1.0, 1.0 };
-	GLfloat diffuseLight[] = { 1.0, 1.0, 1.0, 1.0 };
-	GLfloat lightPos[] = { 0.0, 0.0, -scene_size, 0.0 };
+    static GLfloat ambientLight[] = { 1.0, 1.0, 1.0, 1.0 };
+    static GLfloat diffuseLight[] = { 1.0, 1.0, 1.0, 1.0 };
+    static GLfloat lightPos[] = { 0.0, 0.0, -scene_size, 0.0 };
 
 	glLightfv( GL_LIGHT0, GL_AMBIENT, ambientLight );
 	glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseLight );
 	glLightfv( GL_LIGHT0, GL_POSITION, lightPos );
 
 	glShadeModel( GL_FLAT );
-	glEnable(GL_NORMALIZE);
+    glEnable(GL_NORMALIZE);
 	glEnable(GL_DEPTH_TEST);
-	glDepthFunc( GL_LEQUAL );
-	glClearDepth(1.0);
+    glDepthFunc( GL_LEQUAL );
+    glClearDepth(1.0);
 
-	glEnable (GL_BLEND);
-	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glEnable(GL_CULL_FACE);
-	//glEnable(GL_LINE_SMOOTH);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    //glEnable(GL_CULL_FACE);
+    //glEnable(GL_LINE_SMOOTH);
+    glEnable (GL_BLEND);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
 	glEnable( GL_LIGHTING );
@@ -150,8 +149,7 @@ void GlVisuals::glResize(int w, int h)
 
 void GlVisuals::glPaint()
 {
-	glClear(GL_COLOR_BUFFER_BIT );
-	glClear(GL_DEPTH_BUFFER_BIT );
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
@@ -162,7 +160,6 @@ void GlVisuals::glPaint()
 	glRotatef(globalRot.z, 0, 0, 1);
 	drawAxes();
 	drawScene();
-
 }
 
 //[2] Drawing Methods 
@@ -213,7 +210,7 @@ void GlVisuals::setEllapsedMillis(int millis)
 		t = ((millis-milli0)/1000.0);
 }
 
-void GlVisuals::keyEvent (unsigned char key, int x, int y, bool up)
+void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y)
 {
 	key = tolower(key);
 
@@ -230,7 +227,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
 	if (selObj<0) 
 	{
 		Point &t = globalTranslation;
-		float &e = dir&2? t.x : t.z;
+        float &e = dir&2? t.x : t.y;
 		e = dir&1? e - scene_size/20: e + scene_size/20;
 	}
 	else
