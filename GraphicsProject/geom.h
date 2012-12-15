@@ -152,7 +152,7 @@ struct Box
 struct Triangle
 {	
 	vector<Point> *vecList;	// Pointer to the vector containing the mVertices
-	unsigned short vi1, vi2, vi3;		// Indices to the above vector
+	int vi1, vi2, vi3;		// Indices to the above vector
 	float A, B, C, D;		// Plane equation coefficients
 	Box box;				// Bounding box of the triangle
 	bool deleted;			// Flag indicating that a triangle should be considered deleted

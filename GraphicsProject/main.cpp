@@ -59,7 +59,7 @@ void mouseMotion(int x, int y)
 
 void KeyEvent(unsigned char key, int x, int y, bool updown)
 {
-	if (key==27 || key == 'c' || key == 'q') exit(0);
+	if (key==27 ) exit(0);
 	visuals->keyEvent(key, x, y, updown);
 	glutPostRedisplay();
 }

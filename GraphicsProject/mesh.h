@@ -25,7 +25,7 @@ using namespace std;
 #define AABB		(1<<3)
 #define TBOXES		(1<<4)
 
-#define BVL			3
+#define BVL			5
 
 struct Colour {
 	union {	
@@ -42,13 +42,12 @@ struct Colour {
 
 class Mesh
 {
-	Box mBox[(2<<BVL)-1];									// The bounding box hierarchy of the 3d model
-	set<unsigned short> mHierarchyVerticeLists[(2<<BVL)-1];	// Triangles of each hierarchy level
-	vector<Point> mVertices;						// Vertex list
-	vector<Triangle> mTriangles;					// Triangle list | contains indices to the Vertex list
-	vector<set<unsigned short> > mVertexTriangles;	// List of lists of the triangles that are connected to each vertex
-	
-	Point localRot, localTranslation;
+	vector<Box> mBox;							// The bounding box hierarchy of the 3d model
+	vector<set<int> > mHierarchyVerticeLists;	// Triangles of each hierarchy level
+	vector<Point> mVertices;					// Vertex list
+	vector<Triangle> mTriangles;				// Triangle list | contains indices to the Vertex list
+	vector<set<int> > mVertexTriangles;			// List of lists of the triangles that are connected to each vertex
+	Point localRot, localTranslation;			// Transformations
 	
 	void createBoundingBox ();
 	void createTriangleLists ();

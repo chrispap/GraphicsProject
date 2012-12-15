@@ -52,7 +52,7 @@ GlVisuals::GlVisuals()
 
 	/* Create empty meshes */
 	for (int i=0; i<5; ++i) 
-		intersection[i] = new Mesh();
+		intersection[i] = new Mesh("");
 	
 	/* Translate meshes */
 	float zt = armadillo[0]->getBox().getZSize();

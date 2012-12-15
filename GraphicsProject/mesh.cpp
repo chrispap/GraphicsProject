@@ -21,18 +21,11 @@
 #endif
 
 /* Constructrors */
-Mesh::Mesh()
-{
-	createTriangleLists();
-	createBoundingBox();
-	updateTriangleData();
-	localRot = Point(0,0,0);
-	localTranslation = Point(0,0,0);
-}
-
 Mesh::Mesh(string filename, bool ccw,  bool vt):
 	localRot(0,0,0),
-	localTranslation(0,0,0)
+	localTranslation(0,0,0),
+	mBox((2<<BVL)-1),
+	mHierarchyVerticeLists((2<<BVL)-1)
 {	
 	clock_t t = clock();
 	loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
@@ -44,7 +37,9 @@ Mesh::Mesh(string filename, bool ccw,  bool vt):
 
 Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
 	localRot(0,0,0),
-	localTranslation(0,0,0)
+	localTranslation(0,0,0),
+	mBox((2<<BVL)-1),
+	mHierarchyVerticeLists((2<<BVL)-1)
 {
 	clock_t t = clock();
 	findCollisions(m1, m2, mVertices, mTriangles, both);
@@ -59,7 +54,9 @@ Mesh::Mesh(const Mesh &original):
 	mTriangles (original.mTriangles),
 	mVertexTriangles (original.mVertexTriangles),
 	mBox (original.mBox),
-	mHierarchyVerticeLists (original.mHierarchyVerticeLists)
+	mHierarchyVerticeLists (original.mHierarchyVerticeLists),
+	localRot (original.localRot),
+	localTranslation (original.localTranslation)
 {
 	vector<Triangle>::iterator ti;
 	for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) 
@@ -91,6 +88,12 @@ void Mesh::createBoundingBox()
 	mBox[0] = Box(boxMin, boxMax);
 
 	/* Levels of Hierrarchy */
+	int ti=0;
+	set<int>::iterator vli;
+	vli = mHierarchyVerticeLists[0].begin();
+	for (ti=0; ti < mVertices.size(); ++ti) 
+		mHierarchyVerticeLists[0].insert(vli, ti);
+		
 	for (int bvlevel=0; bvlevel<BVL; ++bvlevel) { // for each level of hierarchy...
 		for (int div=0; div < (1<<bvlevel); ++div) { // for each node of this level...
 													 // ...divide the node in two nodes
@@ -105,23 +108,25 @@ void Mesh::createBoundingBox()
 			int ch2 = 2*node+2;
 			float limit = (mBox[node].max.x + mBox[node].min.x)/2;
 			
-			for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
-				if (vi->x < limit) {
-					mHierarchyVerticeLists[ch1].insert(vi-mVertices.begin());
-					boxMax1.x = vi->x > boxMax1.x? vi->x: boxMax1.x;
-					boxMax1.y = vi->y > boxMax1.y? vi->y: boxMax1.y;
-					boxMax1.z = vi->z > boxMax1.z? vi->z: boxMax1.z;
-					boxMin1.x = vi->x < boxMin1.x? vi->x: boxMin1.x;
-					boxMin1.y = vi->y < boxMin1.y? vi->y: boxMin1.y;
-					boxMin1.z = vi->z < boxMin1.z? vi->z: boxMin1.z;
+			set<int>::const_iterator bvi;
+			for (bvi=mHierarchyVerticeLists[node].begin(); bvi!=mHierarchyVerticeLists[node].end(); ++bvi) {
+				Point &v = mVertices[*bvi];
+				if (v.x < limit) {
+					mHierarchyVerticeLists[ch1].insert(*bvi);
+					boxMax1.x = v.x > boxMax1.x? v.x: boxMax1.x;
+					boxMax1.y = v.y > boxMax1.y? v.y: boxMax1.y;
+					boxMax1.z = v.z > boxMax1.z? v.z: boxMax1.z;
+					boxMin1.x = v.x < boxMin1.x? v.x: boxMin1.x;
+					boxMin1.y = v.y < boxMin1.y? v.y: boxMin1.y;
+					boxMin1.z = v.z < boxMin1.z? v.z: boxMin1.z;
 				} else {
-					mHierarchyVerticeLists[ch2].insert(vi-mVertices.begin());
-					boxMax2.x = vi->x > boxMax2.x? vi->x: boxMax2.x;
-					boxMax2.y = vi->y > boxMax2.y? vi->y: boxMax2.y;
-					boxMax2.z = vi->z > boxMax2.z? vi->z: boxMax2.z;
-					boxMin2.x = vi->x < boxMin2.x? vi->x: boxMin2.x;
-					boxMin2.y = vi->y < boxMin2.y? vi->y: boxMin2.y;
-					boxMin2.z = vi->z < boxMin2.z? vi->z: boxMin2.z;
+					mHierarchyVerticeLists[ch2].insert(*bvi);
+					boxMax2.x = v.x > boxMax2.x? v.x: boxMax2.x;
+					boxMax2.y = v.y > boxMax2.y? v.y: boxMax2.y;
+					boxMax2.z = v.z > boxMax2.z? v.z: boxMax2.z;
+					boxMin2.x = v.x < boxMin2.x? v.x: boxMin2.x;
+					boxMin2.y = v.y < boxMin2.y? v.y: boxMin2.y;
+					boxMin2.z = v.z < boxMin2.z? v.z: boxMin2.z;
 				}
 			}
 			
@@ -330,14 +335,14 @@ void Mesh::alignLocalCenter()
 void Mesh::reduce(int LoD)
 {
 	clock_t t = clock();
-	set<unsigned short> procList;		// List with triangles to process
-	set<unsigned short>::iterator pli;	// Iterator to procList
+	set<int> procList;		// List with triangles to process
+	set<int>::iterator pli;	// Iterator to procList
 	int ti, tx;				// Indices of triangles to delete
 
 	/* Populate triangle list with all the triangles */
 	pli = procList.begin();
 	for (ti=0; ti < mTriangles.size(); ++ti) 
-		procList.insert(pli, ti++);
+		procList.insert(pli, ti);
 
 	/* Do the proccessing */
 	for (pli = procList.begin(); pli != procList.end(); ++pli) {
@@ -349,9 +354,9 @@ void Mesh::reduce(int LoD)
 		/*1. Pick two vertices that will form the collapsing edge */
 		int vk = mTriangles[ti].vi1;				// Vertex we keep of the collapsing edge
 		int vx = mTriangles[ti].vi2;				// Vertex we discard of the collapsing edge
-		set<unsigned short> &vkList = mVertexTriangles[vk];	// Reference to vertex's Vk triangle list
-		set<unsigned short> &vxList = mVertexTriangles[vx];	// Reference to vertex's Vx triangle list
-		set<unsigned short>::iterator vkLi, vxLi;				// Iterators for vertex triangle lists
+		set<int> &vkList = mVertexTriangles[vk];	// Reference to vertex's Vk triangle list
+		set<int> &vxList = mVertexTriangles[vx];	// Reference to vertex's Vx triangle list
+		set<int>::iterator vkLi, vxLi;				// Iterators for vertex triangle lists
 
 		/*2. Find the second triangle, apart ti, with edge [vk,vx]=tx */
 		vxLi = vxList.begin();
@@ -450,9 +455,8 @@ void Mesh::drawNormals()
 
 void Mesh::drawAABB()
 {
-	for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi)
-		mBox[bi].draw();
-	
+	for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) mBox[bi].draw();
+	//for (int bi=0; bi<(2<<BVL)-1; ++bi) mBox[bi].draw();
 }
 
 void Mesh::draw(const Colour &col, int x)
@@ -472,6 +476,7 @@ void Mesh::draw(const Colour &col, int x)
 	glColor3ub(0xFF,0,0);
 	if (x & (1<<2)) drawNormals();
 
+	glColor3ub(0,0,0);
 	if (x & (1<<3)) drawAABB();
 
 	if (x & (1<<4)) drawTriangleBoxes();
