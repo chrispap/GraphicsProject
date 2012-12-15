@@ -7,7 +7,7 @@
 #include "gl/glut.h"
 #endif
 
-GlVisuals *visuals;
+static GlVisuals *visuals;
 
 void timerFired(int val)
 {
@@ -40,12 +40,12 @@ void mouseEvent(int button, int state, int x, int y)
 	Modif(&modif);
 	if (state == GLUT_UP) 
 		return;	
-	
+
 	if ((button == 3) || (button == 4)) { // Wheel event
-		
+
 		visuals->mouseWheel(button==3, modif);
 		glutPostRedisplay();
-	
+
 	} else { // Click event
 		visuals->mousePressed(x,y, modif);
 	}
@@ -78,27 +78,29 @@ void SpeciaEvent (int key, int x, int y)
 {
 	int modif = glutGetModifiers();
 	Modif(&modif);
+	ArrowDir dir;
 
-	if      (key == GLUT_KEY_UP) visuals->arrowEvent(0, modif);
-	else if (key == GLUT_KEY_DOWN) visuals->arrowEvent(1, modif);
-	else if (key == GLUT_KEY_RIGHT) visuals->arrowEvent(2, modif);
-	else if (key == GLUT_KEY_LEFT) visuals->arrowEvent(3, modif);
+	if      (key == GLUT_KEY_UP) dir = UP;
+	else if (key == GLUT_KEY_DOWN) dir = DOWN;
+	else if (key == GLUT_KEY_RIGHT) dir = RIGHT;
+	else if (key == GLUT_KEY_LEFT) dir = LEFT;
 	else return;
-	
+
+	visuals->arrowEvent(dir, modif);
 	glutPostRedisplay();
 }
 
 int main(int argc, char* argv[])
 {
-    visuals = new GlVisuals();
-    
+	visuals = new GlVisuals();
+
 	/* Init GLUT */
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE);
 	glutInitWindowSize(800, 600);
 	glutInitWindowPosition(0,0);
 	glutCreateWindow("Project 6609");
-	
+
 	/*Set GLUT callbacks */
 	glutDisplayFunc(Render);
 	glutReshapeFunc(Resize);
@@ -107,13 +109,13 @@ int main(int argc, char* argv[])
 	glutKeyboardFunc(KeyDownEvent);
 	glutKeyboardUpFunc(KeyUpEvent);
 	glutSpecialFunc(SpeciaEvent);
-	
+
 	/* Init our "scene's" OpenGL Parameters */
-    visuals->glInitialize();
-	
+	visuals->glInitialize();
+
 	/* Enter main loop */
-	
+
 	glutMainLoop();
-	
+
 	return 0;
 }

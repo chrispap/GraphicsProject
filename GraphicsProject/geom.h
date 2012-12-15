@@ -26,30 +26,30 @@ struct Point {
 
 	Point(){ }
 
-    Point(float _x, float _y, float _z): x(_x), y(_y), z(_z) { }
+	Point(float _x, float _y, float _z): x(_x), y(_y), z(_z) { }
 
-    void print()
-    {
-        cout << "(" << x << ", " << y << ", " << z << ")" << endl;
-    }
+	void print()
+	{
+		cout << "(" << x << ", " << y << ", " << z << ")" << endl;
+	}
 
-    Point &add(const Point &v)
-    {
-        x += v.x; y += v.y; z += v.z;
-        return *this;
-    }
+	Point &add(const Point &v)
+	{
+		x += v.x; y += v.y; z += v.z;
+		return *this;
+	}
 
-    Point &sub(const Point &v)
-    {
-        x -= v.x; y -= v.y; z -= v.z;
-        return *this;
-    }
+	Point &sub(const Point &v)
+	{
+		x -= v.x; y -= v.y; z -= v.z;
+		return *this;
+	}
 
-    Point &scale(const float s)
-    {
-        x *= s; y *= s; z *= s;
-        return *this;
-    }
+	Point &scale(const float s)
+	{
+		x *= s; y *= s; z *= s;
+		return *this;
+	}
 
 };
 
@@ -62,7 +62,7 @@ struct Line
 	}
 
 	Line(const Point &_start, const Point &_end): start(_start), end(_end) {}
-	
+
 	~Line(void)
 	{
 	}
@@ -82,18 +82,18 @@ struct Box
 	Box(const Point &v1, const Point &v2, const Point &v3)
 	{
 		min = Point(std::min(v1.x, std::min(v2.x, v3.x)),
-					std::min(v1.y, std::min(v2.y, v3.y)),
-					std::min(v1.z, std::min(v2.z, v3.z)));
+			std::min(v1.y, std::min(v2.y, v3.y)),
+			std::min(v1.z, std::min(v2.z, v3.z)));
 		max = Point(std::max(v1.x, std::max(v2.x, v3.x)),
-					std::max(v1.y, std::max(v2.y, v3.y)),
-					std::max(v1.z, std::max(v2.z, v3.z)));
-                   
+			std::max(v1.y, std::max(v2.y, v3.y)),
+			std::max(v1.z, std::max(v2.z, v3.z)));
+
 	}
 
 	float getXSize() const { return max.x - min.x;}
 	float getYSize() const { return max.y - min.y;}
 	float getZSize() const { return max.z - min.z;}
-	
+
 	void draw() const
 	{
 		Point p[8] = { 
@@ -106,9 +106,9 @@ struct Box
 			Point(max.x, max.y, max.z), //6
 			Point(max.x, min.y, max.z), //7
 		};
-		
+
 		int i;
-		
+
 		glBegin(GL_LINE_LOOP);
 		for (i=0; i<4; ++i) glVertex3fv(p[i].data);
 		glEnd();
@@ -127,26 +127,26 @@ struct Box
 	}
 
 	Box &add(const Point &v)
-    {
-        min.add(v);
-        max.add(v);
-        return *this;
-    }
+	{
+		min.add(v);
+		max.add(v);
+		return *this;
+	}
 
-    Box &sub(const Point &v)
-    {
-        min.sub(v);
-        max.sub(v);
-        return *this;
-    }
+	Box &sub(const Point &v)
+	{
+		min.sub(v);
+		max.sub(v);
+		return *this;
+	}
 
-    Box &scale(const float s)
-    {
-        min.scale(s);
-        max.scale(s);
-        return *this;
-    }
-	
+	Box &scale(const float s)
+	{
+		min.scale(s);
+		max.scale(s);
+		return *this;
+	}
+
 };
 
 struct Triangle
@@ -156,17 +156,17 @@ struct Triangle
 	float A, B, C, D;		// Plane equation coefficients
 	Box box;				// Bounding box of the triangle
 	bool deleted;			// Flag indicating that a triangle should be considered deleted
-	
-    Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3):
+
+	Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3):
 	vi1(_v1),
-	vi2(_v2),
-	vi3(_v3),
-	vecList(_vecList),
-	deleted(0)
+		vi2(_v2),
+		vi3(_v3),
+		vecList(_vecList),
+		deleted(0)
 	{
-        update();
-    }
-	
+		update();
+	}
+
 	void update()
 	{
 		box = Box(v1(), v2(), v3());
@@ -191,22 +191,22 @@ class Geom {
 
 public:
 
-    static Point crossprod (const Point &v1, const Point &v2)
-    {
-	return Point( v1.y * v2.z - v1.z * v2.y,
-				  v1.z * v2.x - v1.x * v2.z,
-				  v1.x * v2.y - v1.y * v2.x );
-    }
+	static Point crossprod (const Point &v1, const Point &v2)
+	{
+		return Point( v1.y * v2.z - v1.z * v2.y,
+			v1.z * v2.x - v1.x * v2.z,
+			v1.x * v2.y - v1.y * v2.x );
+	}
 
-    static float dotprod (const Point &v1, const Point &v2)
-    {
-        return v1.x * v2.x +
-               v1.y * v2.y +
-               v1.z * v2.z;
-    }
+	static float dotprod (const Point &v1, const Point &v2)
+	{
+		return v1.x * v2.x +
+			v1.y * v2.y +
+			v1.z * v2.z;
+	}
 
-    static char mkcode (const Point &v, const Box b)
-    {
+	static char mkcode (const Point &v, const Box b)
+	{
 		Point c1 = b.min;
 		Point c2 = b.max;
 		unsigned char code = 0x00;
@@ -214,31 +214,31 @@ public:
 		if (v.z>c2.z) code|=0x01; else if (v.z<c1.z) code |=0x02;
 		if (v.y>c2.y) code|=0x04; else if (v.y<c1.y) code |=0x08;
 		if (v.x>c2.x) code|=0x10; else if (v.x<c1.x) code |=0x20;
-		
+
 		return code;
-    }
+	}
 
 	/* Intersections of shapes */
 	static bool intersects (const Box &b1, const Box &b2)
 	{
 		return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
-			   (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
-			   (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
+			(b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
+			(b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
 	}
 
 	static bool intersects (const Triangle &t, const Line &l)
 	{
 		if (t.planeEquation(l.start) * t.planeEquation(l.end) > 0)
 			return false;
-        else 
+		else 
 		{
 			/* Find the intersection point */
 			Point dl = Point(l.end).sub(l.start);
 			float tdl = -t.planeEquation(l.start)/(t.planeEquation(dl)- t.D);
 			Point i = Point(l.start).add(dl.scale(tdl));
-			
+
 			/* Temporary vector containing the 6 vertices
-			 * that form the 3 planes around the triangle */
+			* that form the 3 planes around the triangle */
 			Point N(t.getNormal());
 			vector<Point> tempVec(6);
 			tempVec[0] = tempVec[3] = t.v1();
@@ -251,7 +251,7 @@ public:
 			float eq1 = Triangle(&tempVec, 0, 1, 3).planeEquation(i);
 			float eq2 = Triangle(&tempVec, 1, 2, 4).planeEquation(i);
 			float eq3 = Triangle(&tempVec, 2, 3, 5).planeEquation(i);
-			
+
 			if ( (eq1>0 && eq2>0 && eq3>0) || (eq1<0 && eq2<0 && eq3<0) )
 				return true;
 			else return false;

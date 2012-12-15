@@ -20,6 +20,6 @@ private:
     QSlider *distSlider;
     QSlider *heightSlider;
     QSlider *createSlider(int range);
-};
+}
 
 #endif // WINDOW_H

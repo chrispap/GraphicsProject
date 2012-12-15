@@ -22,7 +22,7 @@
 
 /* Constructrors */
 Mesh::Mesh(string filename, bool ccw,  bool vt):
-	localRot(0,0,0),
+localRot(0,0,0),
 	localTranslation(0,0,0),
 	mBox((2<<BVL)-1),
 	mHierarchyVerticeLists((2<<BVL)-1)
@@ -36,7 +36,7 @@ Mesh::Mesh(string filename, bool ccw,  bool vt):
 }
 
 Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
-	localRot(0,0,0),
+localRot(0,0,0),
 	localTranslation(0,0,0),
 	mBox((2<<BVL)-1),
 	mHierarchyVerticeLists((2<<BVL)-1)
@@ -50,7 +50,7 @@ Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
 }
 
 Mesh::Mesh(const Mesh &original):
-	mVertices (original.mVertices),
+mVertices (original.mVertices),
 	mTriangles (original.mTriangles),
 	mVertexTriangles (original.mVertexTriangles),
 	mBox (original.mBox),
@@ -93,21 +93,21 @@ void Mesh::createBoundingBox()
 	vli = mHierarchyVerticeLists[0].begin();
 	for (ti=0; ti < mVertices.size(); ++ti) 
 		mHierarchyVerticeLists[0].insert(vli, ti);
-		
+
 	for (int bvlevel=0; bvlevel<BVL; ++bvlevel) { // for each level of hierarchy...
 		for (int div=0; div < (1<<bvlevel); ++div) { // for each node of this level...
-													 // ...divide the node in two nodes
+			// ...divide the node in two nodes
 			Point boxMin1,boxMax1,boxMin2,boxMax2;
 			boxMin1.x = boxMin1.y = boxMin1.z = FLT_MAX;
 			boxMax1.x = boxMax1.y = boxMax1.z = FLT_MIN;
 			boxMin2.x = boxMin2.y = boxMin2.z = FLT_MAX;
 			boxMax2.x = boxMax2.y = boxMax2.z = FLT_MIN;
-			
+
 			int node = (1<<bvlevel) -1+div;
 			int ch1 = 2*node+1;
 			int ch2 = 2*node+2;
 			float limit = (mBox[node].max.x + mBox[node].min.x)/2;
-			
+
 			set<int>::const_iterator bvi;
 			for (bvi=mHierarchyVerticeLists[node].begin(); bvi!=mHierarchyVerticeLists[node].end(); ++bvi) {
 				Point &v = mVertices[*bvi];
@@ -129,7 +129,7 @@ void Mesh::createBoundingBox()
 					boxMin2.z = v.z < boxMin2.z? v.z: boxMin2.z;
 				}
 			}
-			
+
 			mBox[ch1] = Box(boxMin1, boxMax1);
 			mBox[ch2] = Box(boxMin2, boxMax2);	
 		}
@@ -286,7 +286,7 @@ void Mesh::setSize(float size)
 
 	for (int bi=0; bi<(2<<BVL)-1; ++bi)
 		mBox[bi].scale(s);
-	
+
 	updateTriangleData();
 }
 
@@ -298,7 +298,7 @@ void Mesh::translate(const Point &p)
 
 	for (int bi=0; bi<(2<<BVL)-1; ++bi)
 		mBox[bi].add(p);
-	
+
 	updateTriangleData();
 }
 
@@ -310,7 +310,7 @@ void Mesh::alignLocalCorner()
 
 	for (int bi=0; bi<(2<<BVL)-1; ++bi)
 		mBox[bi].sub(Point(mBox[0].min));
-	
+
 	updateTriangleData();
 }
 
@@ -328,7 +328,7 @@ void Mesh::alignLocalCenter()
 
 	for (int bi=0; bi<(2<<BVL)-1; ++bi)
 		mBox[bi].sub(c1);
-	
+
 	updateTriangleData();
 }
 

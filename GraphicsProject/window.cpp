@@ -27,14 +27,6 @@ Window::Window(QWidget *parent) : QMainWindow(parent)
     mainLayout->addWidget(xSlider);
     mainLayout->addWidget(ySlider);
     mainLayout->addWidget(zSlider);
-    mainLayout->addWidget(distSlider);
-    mainLayout->addWidget(heightSlider);
-
-    xSlider->setValue(glWidget->getXRotation());
-    ySlider->setValue(glWidget->getYRotation());
-    zSlider->setValue(glWidget->getZRotation());
-    distSlider->setValue(0);
-    heightSlider->setValue(0);
 
     centralWidget()->setLayout(mainLayout);
 }

@@ -24,20 +24,12 @@ using namespace std;
 #define NORMALS		(1<<2)
 #define AABB		(1<<3)
 #define TBOXES		(1<<4)
-
 #define BVL			5
 
 struct Colour {
-	union {	
-		struct { unsigned char r, g, b;};
-		unsigned char data[3];
-	};
-
-	Colour (unsigned char _r, unsigned char _g, unsigned char _b){
-		r=_r;
-		g=_g;
-		b=_b;
-	}
+	union {	struct { unsigned char r, g, b;};
+	unsigned char data[3];};
+	Colour (unsigned char _r, unsigned char _g, unsigned char _b):r(_r), g(_g), b(_b) {}
 };
 
 class Mesh
@@ -48,7 +40,7 @@ class Mesh
 	vector<Triangle> mTriangles;				// Triangle list | contains indices to the Vertex list
 	vector<set<int> > mVertexTriangles;			// List of lists of the triangles that are connected to each vertex
 	Point localRot, localTranslation;			// Transformations
-	
+
 	void createBoundingBox ();
 	void createTriangleLists ();
 	void updateTriangleData ();
@@ -73,9 +65,9 @@ public:
 	void setSize (float size);
 	void translate (const Point &p);
 	void setLocalTranslation (const Point &p);
-    void reduce (int LoD=1);
+	void reduce (int LoD=1);
 	void draw (const Colour &col, int x);
-	
+
 	const Point &getLocalTranslation() const { return localTranslation;};
 	const Point &getLocalRotation() const { return localRot;};
 	const Box &getBox () const { return mBox[0];};
