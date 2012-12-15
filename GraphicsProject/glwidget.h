@@ -2,6 +2,9 @@
 #define GLWIDGET_H
 
 #include <QGLWidget>
+#include <QMouseEvent>
+#include <QWheelEvent>
+#include "glvisuals.h"
 
  class GLWidget : public QGLWidget
  {
@@ -11,13 +14,13 @@
      GLWidget(QWidget *parent = 0);
      ~GLWidget();
 
-     QSize minimumSizeHint() const;
-     QSize sizeHint() const;
+     QSize minimumSizeHint() const { return QSize(50, 50);}
+     QSize sizeHint() const { return QSize(800, 600);}
 
  public slots:
-     void setXRotation(int angle);
-     void setYRotation(int angle);
-     void setZRotation(int angle);
+     void setXRotation(int angle){}
+     void setYRotation(int angle){}
+     void setZRotation(int angle){}
 
  signals:
      void xRotationChanged(int angle);
@@ -25,11 +28,15 @@
      void zRotationChanged(int angle);
 
  protected:
-     void initializeGL();
-     void paintGL();
-     void resizeGL(int width, int height);
-     void mousePressEvent(QMouseEvent *event);
-     void mouseMoveEvent(QMouseEvent *event);
- }
+     void initializeGL(){ visuals.glInitialize();}
+     void paintGL(){ visuals.glPaint();}
+     void resizeGL(int w, int h){ visuals.glResize(w,h);}
+     void mousePressEvent(QMouseEvent *event){ visuals.mousePressed(event->x(), event->y());updateGL();}
+     void mouseMoveEvent(QMouseEvent *event) {visuals.mouseMoved(event->x(), event->y());updateGL();}
+     void wheelEvent(QWheelEvent *event) { visuals.mouseWheel(event->delta()>0?1:0);updateGL();}
+
+ private:
+     GlVisuals visuals;
+ };
 
 #endif

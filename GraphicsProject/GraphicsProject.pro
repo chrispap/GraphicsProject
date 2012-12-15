@@ -4,16 +4,10 @@
 QT += opengl
 TARGET = GraphicsProject
 TEMPLATE = app
-SOURCES += mainqt.cpp \
-    glwidget.cpp \
-    window.cpp \
-    model.cpp \
+SOURCES += mainqt.cpp glwidget.cpp window.cpp \
+    mesh.cpp \
     glvisuals.cpp
-HEADERS += \
-    Vertex.h \
-    glwidget.h \
-    window.h \
-    model.h \
+HEADERS += glwidget.h window.h \
+    mesh.h \
     glvisuals.h \
-    glwidget.h
-
+    geom.h

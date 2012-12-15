@@ -1,11 +1,11 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <QMainWindow>
+#include <QWidget>
 #include <QSlider>
 #include "glwidget.h"
 
-class Window : public QMainWindow {
+class Window : public QWidget {
     Q_OBJECT
 
 public:
@@ -17,9 +17,7 @@ private:
     QSlider *xSlider;
     QSlider *ySlider;
     QSlider *zSlider;
-    QSlider *distSlider;
-    QSlider *heightSlider;
     QSlider *createSlider(int range);
-}
+};
 
 #endif // WINDOW_H

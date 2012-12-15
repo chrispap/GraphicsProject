@@ -43,10 +43,10 @@ public:
 	void glPaint();
 
 	void setEllapsedMillis (int milliseconds);
-	void setGlobalRotation (const Point &rotVec) {globalRot = rotVec;};
-	void setGlobalTranslation (const Point &tVec) {globalTranslation = tVec;};
-	Point getGlobalRotation () {return globalRot;};
-	Point getGlobalTranslation () {return globalTranslation;};
+    void setGlobalRotation (const Point &rotVec) {globalRot = rotVec;}
+    void setGlobalTranslation (const Point &tVec) {globalTranslation = tVec;}
+    Point getGlobalRotation () {return globalRot;}
+    Point getGlobalTranslation () {return globalTranslation;}
 
 	void keyEvent (unsigned char key, int x, int y, bool up);
 	void arrowEvent (int dir, int modif=0);
