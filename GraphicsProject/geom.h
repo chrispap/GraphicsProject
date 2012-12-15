@@ -24,14 +24,9 @@ struct Point {
 		float data[3];
 	};
 
-	Point()
-	{
-	}
+	Point(){ }
 
-    Point(float _x, float _y, float _z) 
-	{
-        x=_x; y=_y; z=_z;
-    }
+    Point(float _x, float _y, float _z): x(_x), y(_y), z(_z) { }
 
     void print()
     {
@@ -66,12 +61,8 @@ struct Line
 	{
 	}
 
-	Line(const Point &_start, const Point &_end)
-	{
-		start = _start;
-		end = _end;
-	}
-
+	Line(const Point &_start, const Point &_end): start(_start), end(_end) {}
+	
 	~Line(void)
 	{
 	}
@@ -86,11 +77,7 @@ struct Box
 	{
 	}
 
-	Box(const Point &vmin, const Point &vmax)
-	{
-		min = vmin;
-		max = vmax;
-	}
+	Box(const Point &vmin, const Point &vmax): min(vmin), max(vmax) {}
 
 	Box(const Point &v1, const Point &v2, const Point &v3)
 	{
@@ -170,13 +157,13 @@ struct Triangle
 	Box box;				// Bounding box of the triangle
 	bool deleted;			// Flag indicating that a triangle should be considered deleted
 	
-    Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3)
-    {
-        vi1 = _v1;
-        vi2 = _v2;
-        vi3 = _v3;
-        vecList = _vecList;
-        deleted=0;
+    Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3):
+	vi1(_v1),
+	vi2(_v2),
+	vi3(_v3),
+	vecList(_vecList),
+	deleted(0)
+	{
         update();
     }
 	

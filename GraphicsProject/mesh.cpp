@@ -30,45 +30,40 @@ Mesh::Mesh()
 	localTranslation = Point(0,0,0);
 }
 
-Mesh::Mesh(string filename, bool ccw,  bool vt)
-{
+Mesh::Mesh(string filename, bool ccw,  bool vt):
+	localRot(0,0,0),
+	localTranslation(0,0,0)
+{	
 	clock_t t = clock();
-
 	loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
-	localRot = Point(0,0,0);
-	localTranslation = Point(0,0,0);
-
 	printf ("Mesh loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
-Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both)
+Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
+	localRot(0,0,0),
+	localTranslation(0,0,0)
 {
 	clock_t t = clock();
 	findCollisions(m1, m2, mVertices, mTriangles, both);
 	createTriangleLists();
 	createBoundingBox();
 	updateTriangleData();
-
-	localRot = Point(0,0,0);
-	localTranslation = Point(0,0,0);
-
 	printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
-Mesh::Mesh(const Mesh &original)
+Mesh::Mesh(const Mesh &original):
+	mVertices (original.mVertices),
+	mTriangles (original.mTriangles),
+	mVertexTriangles (original.mVertexTriangles),
+	mBox (original.mBox),
+	mHierarchyVerticeLists (original.mHierarchyVerticeLists)
 {
-	mVertices = original.mVertices;
-	mTriangles = original.mTriangles;
-	mVertexTriangles = original.mVertexTriangles;
-	mBox = original.mBox;
-
 	vector<Triangle>::iterator ti;
 	for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti) 
 		ti->vecList = &mVertices;
-
 }
 
 Mesh::~Mesh()
@@ -78,6 +73,7 @@ Mesh::~Mesh()
 
 void Mesh::createBoundingBox()
 {
+	/* Big Outer Box */
 	Point boxMin,boxMax;
 	boxMin.x = boxMin.y = boxMin.z = FLT_MAX;
 	boxMax.x = boxMax.y = boxMax.z = FLT_MIN;
@@ -92,25 +88,65 @@ void Mesh::createBoundingBox()
 		boxMin.z = vi->z < boxMin.z? vi->z: boxMin.z;
 	}
 
-	mBox = Box(boxMin, boxMax);
+	mBox[0] = Box(boxMin, boxMax);
+
+	/* Levels of Hierrarchy */
+	for (int bvlevel=0; bvlevel<BVL; ++bvlevel) { // for each level of hierarchy...
+		for (int div=0; div < (1<<bvlevel); ++div) { // for each node of this level...
+													 // ...divide the node in two nodes
+			Point boxMin1,boxMax1,boxMin2,boxMax2;
+			boxMin1.x = boxMin1.y = boxMin1.z = FLT_MAX;
+			boxMax1.x = boxMax1.y = boxMax1.z = FLT_MIN;
+			boxMin2.x = boxMin2.y = boxMin2.z = FLT_MAX;
+			boxMax2.x = boxMax2.y = boxMax2.z = FLT_MIN;
+			
+			int node = (1<<bvlevel) -1+div;
+			int ch1 = 2*node+1;
+			int ch2 = 2*node+2;
+			float limit = (mBox[node].max.x + mBox[node].min.x)/2;
+			
+			for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
+				if (vi->x < limit) {
+					mHierarchyVerticeLists[ch1].insert(vi-mVertices.begin());
+					boxMax1.x = vi->x > boxMax1.x? vi->x: boxMax1.x;
+					boxMax1.y = vi->y > boxMax1.y? vi->y: boxMax1.y;
+					boxMax1.z = vi->z > boxMax1.z? vi->z: boxMax1.z;
+					boxMin1.x = vi->x < boxMin1.x? vi->x: boxMin1.x;
+					boxMin1.y = vi->y < boxMin1.y? vi->y: boxMin1.y;
+					boxMin1.z = vi->z < boxMin1.z? vi->z: boxMin1.z;
+				} else {
+					mHierarchyVerticeLists[ch2].insert(vi-mVertices.begin());
+					boxMax2.x = vi->x > boxMax2.x? vi->x: boxMax2.x;
+					boxMax2.y = vi->y > boxMax2.y? vi->y: boxMax2.y;
+					boxMax2.z = vi->z > boxMax2.z? vi->z: boxMax2.z;
+					boxMin2.x = vi->x < boxMin2.x? vi->x: boxMin2.x;
+					boxMin2.y = vi->y < boxMin2.y? vi->y: boxMin2.y;
+					boxMin2.z = vi->z < boxMin2.z? vi->z: boxMin2.z;
+				}
+			}
+			
+			mBox[ch1] = Box(boxMin1, boxMax1);
+			mBox[ch2] = Box(boxMin2, boxMax2);	
+		}
+	}
 }
 
 float Mesh::boxCoverage()
 {
 	int voxelCount=0, intersectionsCount;
-	Point ray_far = Point(mBox.max).scale(3);
+	Point ray_far = Point(mBox[0].max).scale(3);
 
 	const float xm=10, ym=10, zm=10;
-	float dx = (mBox.max.x - mBox.min.x)/xm;
-	float dy = (mBox.max.y - mBox.min.y)/ym;
-	float dz = (mBox.max.z - mBox.min.z)/zm;
+	float dx = (mBox[0].max.x - mBox[0].min.x)/xm;
+	float dy = (mBox[0].max.y - mBox[0].min.y)/ym;
+	float dz = (mBox[0].max.z - mBox[0].min.z)/zm;
 
 	for (int x=0; x<xm; ++x) {
 		printf("\b\b\b\b");
 		for (int y=0; y<ym; ++y) {
 			for (int z=0; z<zm; ++z) {
 				intersectionsCount=0;
-				Line ray (Point(mBox.min.x+dx*x, mBox.min.y+dy*y, mBox.min.z+dz*z), ray_far);
+				Line ray (Point(mBox[0].min.x+dx*x, mBox[0].min.y+dy*y, mBox[0].min.z+dz*z), ray_far);
 
 				vector<Triangle>::const_iterator ti;
 				for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti){
@@ -235,15 +271,17 @@ void Mesh::findCollisions(const Mesh &m1, const Mesh &m2, vector<Point> &vertice
 /* Editing */
 void Mesh::setSize(float size)
 {
-	float s = size / (max(mBox.max.x-mBox.min.x,
-		max(mBox.max.y-mBox.min.y,
-		mBox.max.z-mBox.min.z)));
+	float s = size / (max(mBox[0].max.x-mBox[0].min.x,
+		max(mBox[0].max.y-mBox[0].min.y,
+		mBox[0].max.z-mBox[0].min.z)));
 
 	vector<Point>::iterator vi;
 	for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
 		vi->scale(s);
 
-	mBox.scale(s);
+	for (int bi=0; bi<(2<<BVL)-1; ++bi)
+		mBox[bi].scale(s);
+	
 	updateTriangleData();
 }
 
@@ -253,7 +291,9 @@ void Mesh::translate(const Point &p)
 	for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
 		vi->add(p);
 
-	mBox.add(p);
+	for (int bi=0; bi<(2<<BVL)-1; ++bi)
+		mBox[bi].add(p);
+	
 	updateTriangleData();
 }
 
@@ -261,16 +301,18 @@ void Mesh::alignLocalCorner()
 {
 	vector<Point>::iterator vi;
 	for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
-		vi->sub(mBox.min);
+		vi->sub(mBox[0].min);
 
-	mBox.sub(Point(mBox.min));
+	for (int bi=0; bi<(2<<BVL)-1; ++bi)
+		mBox[bi].sub(Point(mBox[0].min));
+	
 	updateTriangleData();
 }
 
 void Mesh::alignLocalCenter()
 {
-	Point c2(mBox.max);
-	Point c1(mBox.min);
+	Point c2(mBox[0].max);
+	Point c1(mBox[0].min);
 	c2.sub(c1);
 	c2.scale(0.5);
 	c1.add(c2);
@@ -279,7 +321,9 @@ void Mesh::alignLocalCenter()
 	for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
 		vi->sub(c1);
 
-	mBox.sub(c1);
+	for (int bi=0; bi<(2<<BVL)-1; ++bi)
+		mBox[bi].sub(c1);
+	
 	updateTriangleData();
 }
 
@@ -406,7 +450,9 @@ void Mesh::drawNormals()
 
 void Mesh::drawAABB()
 {
-	mBox.draw();
+	for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi)
+		mBox[bi].draw();
+	
 }
 
 void Mesh::draw(const Colour &col, int x)
