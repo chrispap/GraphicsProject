@@ -36,24 +36,25 @@ void Modif(int *modif)
 
 void mouseEvent(int button, int state, int x, int y)
 {
-	int modif = glutGetModifiers();
-	Modif(&modif);
 	if (state == GLUT_UP) 
 		return;	
 
 	if ((button == 3) || (button == 4)) { // Wheel event
 
-		visuals->mouseWheel(button==3, modif);
+		visuals->mouseWheel(button==3);
 		glutPostRedisplay();
 
 	} else { // Click event
-		visuals->mousePressed(x,y, modif);
+		visuals->mousePressed(x,y);
 	}
 }
 
 void mouseMotion(int x, int y)
 {
-	visuals->mouseMoved(x,y);
+	int modif = glutGetModifiers();
+	Modif(&modif);
+	
+	visuals->mouseMoved(x,y, modif);
 	glutPostRedisplay();
 }
 
@@ -76,8 +77,6 @@ void KeyDownEvent(unsigned char key, int x, int y)
 
 void SpeciaEvent (int key, int x, int y)
 {
-	int modif = glutGetModifiers();
-	Modif(&modif);
 	ArrowDir dir;
 
 	if      (key == GLUT_KEY_UP) dir = UP;
@@ -86,7 +85,7 @@ void SpeciaEvent (int key, int x, int y)
 	else if (key == GLUT_KEY_LEFT) dir = LEFT;
 	else return;
 
-	visuals->arrowEvent(dir, modif);
+	visuals->arrowEvent(dir);
 	glutPostRedisplay();
 }
 
@@ -114,7 +113,6 @@ int main(int argc, char* argv[])
 	visuals->glInitialize();
 
 	/* Enter main loop */
-	glutFullScreen();
 	glutMainLoop();
 
 	return 0;

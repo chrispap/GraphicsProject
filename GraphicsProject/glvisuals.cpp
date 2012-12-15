@@ -22,7 +22,7 @@ const float GlVisuals::PI=3.14159;
 
 GlVisuals::GlVisuals():
     globalTranslation (0,0,0),
-    globalRot (0,0,0),
+    globalRot (45,0,0),
     perspective_proj (1),
     scene_size (100),
     scene_dist (scene_size),
@@ -43,7 +43,7 @@ GlVisuals::~GlVisuals()
 	}
 }
 
-//[0] Manage models
+/** Manage models */
 void GlVisuals::loadModels()
 {
 	/* Load Model 1 */
@@ -97,7 +97,7 @@ void GlVisuals::intersectModels()
 	}
 }
 
-//[1] OpenGL Callback Methods 
+/** OpenGL Callback Methods */
 void GlVisuals::glInitialize()
 {
     static GLfloat ambientLight[] = { 1.0, 1.0, 1.0, 1.0 };
@@ -108,7 +108,7 @@ void GlVisuals::glInitialize()
 	glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseLight );
 	glLightfv( GL_LIGHT0, GL_POSITION, lightPos );
 
-	glShadeModel( GL_FLAT );
+	//glShadeModel( GL_FLAT );
     glEnable(GL_NORMALIZE);
 	glEnable(GL_DEPTH_TEST);
     glDepthFunc( GL_LEQUAL );
@@ -153,28 +153,31 @@ void GlVisuals::glPaint()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
+	/* Push away the scene */
+	glTranslatef(0,0,-scene_dist);
+	drawAxes();
 	/* Apply global transformations */
-	glTranslatef(globalTranslation.x, globalTranslation.y, globalTranslation.z-scene_dist);
+	glTranslatef(globalTranslation.x, globalTranslation.y, globalTranslation.z);
 	glRotatef(globalRot.x, 1, 0, 0);
 	glRotatef(globalRot.y, 0, 1, 0);
 	glRotatef(globalRot.z, 0, 0, 1);
-	drawAxes();
+	
 	drawScene();
 }
 
-//[2] Drawing Methods 
+/** Drawing Methods */
 void GlVisuals::drawAxes()
 {
 	glBegin(GL_LINES);
-	// [X]
+	//[X]
 	glColor3ub(0xFF, 0, 0);
 	glVertex2f(0.0,0.0);
 	glVertex2f(10.0*scene_size,0.0);
-	// [Y]
+	//[Y]
 	glColor3f(0, 0xFF, 0);
 	glVertex2f(0.0,0.0);
 	glVertex2f(0.0,10.0*scene_size);
-	// [Z]
+	//[Z]
 	glColor3f(0, 0, 0xFF);
 	glVertex2f(0.0,0.0);
 	glVertex3f(0.0,0.0,10.0*scene_size);
@@ -184,24 +187,14 @@ void GlVisuals::drawAxes()
 
 void GlVisuals::drawScene()
 {
-	GLubyte c = 0x66;
-	Colour col(c,c,c);
 	for (int i=0; i<5; ++i) {
-		armadillo[i]->draw(Colour(c,c,0), SOLID | (i==selObj?AABB:0));
-		car[i]->draw(Colour(0,c,c), SOLID );
-		intersection[i]->draw(Colour(c,0,c), SOLID | WIRE);
+		car[i]         ->draw (Colour(0,0x66,0x66), SOLID );
+		armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | (i==selObj?AABB:0));
+		intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
 	}
 }
 
-//[3] UI Methods
-static void qNormalizeAngle(int &angle)
-{
-	while (angle < 0)
-		angle += 360;
-	while (angle > 360)
-		angle -= 360;
-}
-
+/** UI Methods */
 void GlVisuals::setEllapsedMillis(int millis)
 {
 	if (milli0<0)	// In the first call calibrate.
@@ -266,13 +259,13 @@ void GlVisuals::mouseWheel(int dir, int modif)
 {
 	if (selObj < 0) 
 	{
-		float &e = selT=='x'? globalTranslation.x : (selT=='y'? globalTranslation.y : globalTranslation.z);
+		float &e = globalTranslation.z;
 		e += scene_size/20 * (dir?-1:+1);
 	}
 	else 
 	{
 		Point t(0,0,0);
-		float &e = selT=='x'? t.x : (selT=='y'? t.y: t.z);
+		float &e = t.y;
 		e += scene_size/20 * (dir?-1:+1);
 		armadillo[selObj]->translate(t);
 	}

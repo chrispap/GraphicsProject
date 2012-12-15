@@ -18,12 +18,12 @@
 
 using namespace std;
 
+#define BVL			3
 #define SOLID		(1<<0)
 #define WIRE		(1<<1)
 #define NORMALS		(1<<2)
 #define AABB		(1<<3)
 #define TBOXES		(1<<4)
-#define BVL			5
 
 class Mesh
 {

@@ -93,10 +93,9 @@ void Mesh::createBoundingBox()
     for (ti=0; ti < mVertices.size(); ++ti)
         mHierarchyVerticeLists[0].insert(vli, ti);
 
-    for (int bvlevel=0; bvlevel<BVL; ++bvlevel) { // for each level of hierarchy...
-        for (int div=0; div < (1<<bvlevel); ++div) { // for each node of this level...
-            // ...divide the node in two nodes
-            Point boxMin1,boxMax1,boxMin2,boxMax2;
+    for (int bvlevel=0; bvlevel<BVL; ++bvlevel) { 		// For each level of hierarchy...
+        for (int div=0; div < (1<<bvlevel); ++div) { 	// for each node of this level...
+            Point boxMin1,boxMax1,boxMin2,boxMax2;		// divide the node in two nodes.
             boxMin1.x = boxMin1.y = boxMin1.z = FLT_MAX;
             boxMax1.x = boxMax1.y = boxMax1.z = FLT_MIN;
             boxMin2.x = boxMin2.y = boxMin2.z = FLT_MAX;
@@ -105,12 +104,13 @@ void Mesh::createBoundingBox()
             int node = (1<<bvlevel) -1+div;
             int ch1 = 2*node+1;
             int ch2 = 2*node+2;
-            float limit = (mBox[node].max.x + mBox[node].min.x)/2;
+            int xyz = 0; // The dimension in which we "cut" the object in half.
+            float limit = (mBox[node].max.data[xyz] + mBox[node].min.data[xyz])/2;
 
             set<int>::const_iterator bvi;
             for (bvi=mHierarchyVerticeLists[node].begin(); bvi!=mHierarchyVerticeLists[node].end(); ++bvi) {
                 Point &v = mVertices[*bvi];
-                if (v.x < limit) {
+                if (v.data[xyz] < limit) {
                     mHierarchyVerticeLists[ch1].insert(*bvi);
                     boxMax1.x = v.x > boxMax1.x? v.x: boxMax1.x;
                     boxMax1.y = v.y > boxMax1.y? v.y: boxMax1.y;
@@ -455,6 +455,8 @@ void Mesh::drawNormals(const Colour &col)
 
 void Mesh::drawAABB(const Colour &col)
 {
+	mBox[0].draw(col, 0);
+	
     // Draw only the leaves of the tree (last level of hierarchy */
     for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi)
         mBox[bi].draw(col, 0x80);
