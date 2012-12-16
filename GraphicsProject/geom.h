@@ -18,7 +18,7 @@
 using namespace std;
 
 struct Colour {
-    union {	struct { unsigned char r, g, b;};
+    union {    struct { unsigned char r, g, b;};
     unsigned char data[3];};
     Colour (unsigned char _r, unsigned char _g, unsigned char _b):r(_r), g(_g), b(_b) {}
 };
@@ -194,22 +194,22 @@ struct Box
 
 struct Triangle
 {
-	union {					
+    union {
         struct { int vi1, vi2, vi3;};
         int v[3];
-    };						// Indices to the above vector
-    vector<Point> *vecList;	// Pointer to the vector containing the mVertices
-    
-    float A, B, C, D;		// Plane equation coefficients
-    Box box;				// Bounding box of the triangle
-    bool deleted;			// Flag indicating that a triangle should be considered deleted
+    };                        // Indices to the above vector
+    vector<Point> *vecList;    // Pointer to the vector containing the mVertices
+
+    float A, B, C, D;        // Plane equation coefficients
+    Box box;                // Bounding box of the triangle
+    bool deleted;            // Flag indicating that a triangle should be considered deleted
 
     Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3):
-        vi1(_v1),
-        vi2(_v2),
-        vi3(_v3),
-        vecList(_vecList),
-        deleted(0)
+            vi1(_v1),
+            vi2(_v2),
+            vi3(_v3),
+            vecList(_vecList),
+            deleted(0)
     {
         update();
     }
@@ -313,12 +313,12 @@ public:
 
         /* Stin synexeia elegxoume akmh-akmh. */
         else if (
-                 intersects(t1, Line(t2.v1(), t2.v2())) ||
-                 intersects(t1, Line(t2.v2(), t2.v3())) ||
-                 intersects(t1, Line(t2.v3(), t2.v1())) ||
-                 intersects(t2, Line(t1.v1(), t1.v2())) ||
-                 intersects(t2, Line(t1.v2(), t1.v3())) ||
-                 intersects(t2, Line(t1.v3(), t1.v1())))
+                intersects(t1, Line(t2.v1(), t2.v2())) ||
+                intersects(t1, Line(t2.v2(), t2.v3())) ||
+                intersects(t1, Line(t2.v3(), t2.v1())) ||
+                intersects(t2, Line(t1.v1(), t1.v2())) ||
+                intersects(t2, Line(t1.v2(), t1.v3())) ||
+                intersects(t2, Line(t1.v3(), t1.v1())))
             return true;
 
         /* Telika den ypaarxei sygkrousi. */

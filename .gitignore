@@ -21,5 +21,9 @@ install_manifest.txt
 
 # Visual Studio C++
 *.suo
+*user*
 *Release*
 *Debug*
+
+# Visual Studio C++
+*moc_*

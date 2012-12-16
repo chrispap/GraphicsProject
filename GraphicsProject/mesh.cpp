@@ -94,17 +94,17 @@ void Mesh::createBoundingBox()
     for (int ti=0; ti < mTriangles.size(); ++ti)
         mAABBTriangles[0].push_back(ti);
 
-    for (int bvlevel=0; bvlevel<BVL; ++bvlevel) { 		// For each level of hierarchy...
-        for (int div=0; div < (1<<bvlevel); ++div) { 	// ...for each node of this level, split the node to half.
-        
+    for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {         // For each level of hierarchy...
+        for (int div=0; div < (1<<bvlevel); ++div) {     // ...for each node of this level, split the node to half.
+
             int parent = (1<<bvlevel) -1+div;
             int ch1 = 2*parent+1;
-			int ch2 = 2*parent+2;
+            int ch2 = 2*parent+2;
             Point &min = mAABB[parent].min;
             Point &max = mAABB[parent].max;
             float limX = (max.x + min.x)/2;
-			Box box1 (min, Point(limX, max.y, max.z));
-			Box box2 (Point(limX, min.y, min.z), max);
+            Box box1 (min, Point(limX, max.y, max.z));
+            Box box2 (Point(limX, min.y, min.z), max);
             Point boxMin1,boxMax1,boxMin2,boxMax2;
             boxMin1.x = boxMin1.y = boxMin1.z = FLT_MAX;
             boxMax1.x = boxMax1.y = boxMax1.z = FLT_MIN;
@@ -119,32 +119,32 @@ void Mesh::createBoundingBox()
                 Point &bmin = b1? boxMin1: boxMin2;
                 Point &bmax = b1? boxMax1: boxMax2;
                 for (int vi=0; vi<3; ++vi) {
-					Point &v = mVertices[t.v[vi]];
-					if (v.x > bmax.x) bmax.x = v.x;
-					else if (v.x < bmin.x) bmin.x = v.x;
-					if (v.y > bmax.y) bmax.y = v.y;
-					else if (v.y < bmin.y) bmin.y = v.y;
-					if (v.z > bmax.z) bmax.z = v.z;
-					else if (v.z < bmin.z) bmin.z = v.z;
-				}
+                    Point &v = mVertices[t.v[vi]];
+                    if (v.x > bmax.x) bmax.x = v.x;
+                    else if (v.x < bmin.x) bmin.x = v.x;
+                    if (v.y > bmax.y) bmax.y = v.y;
+                    else if (v.y < bmin.y) bmin.y = v.y;
+                    if (v.z > bmax.z) bmax.z = v.z;
+                    else if (v.z < bmin.z) bmin.z = v.z;
+                }
             }
-			
-			if (boxMin1.x<box1.min.x) boxMin1.x = box1.min.x;
-			if (boxMin1.y<box1.min.y) boxMin1.y = box1.min.y;
-			if (boxMin1.z<box1.min.z) boxMin1.z = box1.min.z;
-			
-			if (boxMax1.x>box1.max.x) boxMax1.x = box1.max.x;
-			if (boxMax1.y>box1.max.y) boxMax1.y = box1.max.y;
-			if (boxMax1.z>box1.max.z) boxMax1.z = box1.max.z;
-			
-			if (boxMin2.x<box2.min.x) boxMin2.x = box2.min.x;
-			if (boxMin2.y<box2.min.y) boxMin2.y = box2.min.y;
-			if (boxMin2.z<box2.min.z) boxMin2.z = box2.min.z;
-			
-			if (boxMax2.x>box2.max.x) boxMax2.x = box2.max.x;
-			if (boxMax2.y>box2.max.y) boxMax2.y = box2.max.y;
-			if (boxMax2.z>box2.max.z) boxMax2.z = box2.max.z;
-			
+
+            if (boxMin1.x<box1.min.x) boxMin1.x = box1.min.x;
+            if (boxMin1.y<box1.min.y) boxMin1.y = box1.min.y;
+            if (boxMin1.z<box1.min.z) boxMin1.z = box1.min.z;
+
+            if (boxMax1.x>box1.max.x) boxMax1.x = box1.max.x;
+            if (boxMax1.y>box1.max.y) boxMax1.y = box1.max.y;
+            if (boxMax1.z>box1.max.z) boxMax1.z = box1.max.z;
+
+            if (boxMin2.x<box2.min.x) boxMin2.x = box2.min.x;
+            if (boxMin2.y<box2.min.y) boxMin2.y = box2.min.y;
+            if (boxMin2.z<box2.min.z) boxMin2.z = box2.min.z;
+
+            if (boxMax2.x>box2.max.x) boxMax2.x = box2.max.x;
+            if (boxMax2.y>box2.max.y) boxMax2.y = box2.max.y;
+            if (boxMax2.z>box2.max.z) boxMax2.z = box2.max.z;
+
             mAABB[ch1] = Box(boxMin1, boxMax1);
             mAABB[ch2] = Box(boxMin2, boxMax2);
         }
@@ -153,34 +153,34 @@ void Mesh::createBoundingBox()
 
 void Mesh::calculateVolume()
 {
-	const float dl = mAABB[0].getXSize()/10;
-	if (dl<0.01) return;
-	 
+    const float dl = mAABB[0].getXSize()/10;
+    if (dl<0.01) return;
+
     unsigned long int voxelCount=0;
     unsigned long int voxelTotal=0;
     Point ray_far = Point(mAABB[0].max).scale(3);
-	
-	for (float x=dl/2; x<mAABB[0].max.x; x+=dl) {
-		for (float y=dl/2; y<mAABB[0].max.y; y+=dl) {
-			for (float z=dl/2; z<mAABB[0].max.z; z+=dl) 
-			{
-				int intersectionsCount=0;
-				Line ray (Point(x,y,z), ray_far);
-				vector<Triangle>::const_iterator ti;
-				for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
-					if ((Geom::mkcode(ray.start, ti->getBox()) & Geom::mkcode(ray.end, ti->getBox())) != 0) continue;
-					if ( Geom::intersects(*ti, ray)) ++intersectionsCount;
-				}
-				if (intersectionsCount%2 == 1) ++voxelCount;
-				++voxelTotal;
-			}
-		}
-	}
 
-	float boundingVol=0;
-	for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) boundingVol += mAABB[bi].getVolume();
-	float cover = ((float)voxelCount)/voxelTotal;
-	float fullVol = mAABB[0].getVolume();
+    for (float x=dl/2; x<mAABB[0].max.x; x+=dl) {
+        for (float y=dl/2; y<mAABB[0].max.y; y+=dl) {
+            for (float z=dl/2; z<mAABB[0].max.z; z+=dl)
+            {
+                int intersectionsCount=0;
+                Line ray (Point(x,y,z), ray_far);
+                vector<Triangle>::const_iterator ti;
+                for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
+                    if ((Geom::mkcode(ray.start, ti->getBox()) & Geom::mkcode(ray.end, ti->getBox())) != 0) continue;
+                    if ( Geom::intersects(*ti, ray)) ++intersectionsCount;
+                }
+                if (intersectionsCount%2 == 1) ++voxelCount;
+                ++voxelTotal;
+            }
+        }
+    }
+
+    float boundingVol=0;
+    for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) boundingVol += mAABB[bi].getVolume();
+    float cover = ((float)voxelCount)/voxelTotal;
+    float fullVol = mAABB[0].getVolume();
     coverage = cover*fullVol/boundingVol;
 }
 
@@ -243,8 +243,8 @@ void Mesh::findCollisions(const Mesh &m1, const Mesh &m2, vector<Point> &vertice
     vector<Triangle> const &m2t = m2.mTriangles;
 
     int mti1, mti2, count=0;
-    bool mt1Collided;			// Flag indicating the collision of a triangle in the outer loop
-    vector<char> mt2Collided;	// Keep track of allready collided triangles
+    bool mt1Collided;            // Flag indicating the collision of a triangle in the outer loop
+    vector<char> mt2Collided;    // Keep track of allready collided triangles
     if (both)
         mt2Collided.resize(m2t.size(), 0);
 
@@ -343,9 +343,9 @@ void Mesh::alignLocalCenter()
 void Mesh::reduce(int LoD)
 {
     clock_t t = clock();
-    set<int> procList;		// List with triangles to process
-    set<int>::iterator pli;	// Iterator to procList
-    int ti, tx;				// Indices of triangles to delete
+    set<int> procList;        // List with triangles to process
+    set<int>::iterator pli;    // Iterator to procList
+    int ti, tx;                // Indices of triangles to delete
 
     /* Populate triangle list with all the triangles */
     pli = procList.begin();
@@ -360,11 +360,11 @@ void Mesh::reduce(int LoD)
             continue;
 
         /*1. Pick two vertices that will form the collapsing edge */
-        int vk = mTriangles[ti].vi1;				// Vertex we keep of the collapsing edge
-        int vx = mTriangles[ti].vi2;				// Vertex we discard of the collapsing edge
-        set<int> &vkList = mVertexTriangles[vk];	// Reference to vertex's Vk triangle list
-        set<int> &vxList = mVertexTriangles[vx];	// Reference to vertex's Vx triangle list
-        set<int>::iterator vkLi, vxLi;				// Iterators for vertex triangle lists
+        int vk = mTriangles[ti].vi1;                // Vertex we keep of the collapsing edge
+        int vx = mTriangles[ti].vi2;                // Vertex we discard of the collapsing edge
+        set<int> &vkList = mVertexTriangles[vk];    // Reference to vertex's Vk triangle list
+        set<int> &vxList = mVertexTriangles[vx];    // Reference to vertex's Vx triangle list
+        set<int>::iterator vkLi, vxLi;                // Iterators for vertex triangle lists
 
         /*2. Find the second triangle, apart ti, with edge [vk,vx]=tx */
         vxLi = vxList.begin();
@@ -470,7 +470,7 @@ void Mesh::drawAABB(const Colour &col)
     for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) {
         mAABB[bi].draw(col, 0);
         mAABB[bi].draw(col, 0x80);
-	}
+    }
 }
 
 void Mesh::draw(const Colour &col, int x)
