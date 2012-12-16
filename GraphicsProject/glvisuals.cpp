@@ -54,7 +54,8 @@ void GlVisuals::loadScene()
     cout << " * Armadillo * " << endl;
     armadillo[0] = new Mesh("Model_1.obj", 0, 0);
     armadillo[0]->setSize(scene_size/2);
-    printf("Mesh volume coverage:\t%4.2f%% \n", 100*armadillo[0]->getBoundingCoverage());
+    for (int blevel=0; blevel<=BVL; blevel++)
+        printf("Mesh volume coverage Level %d:\t%4.2f%% \n", blevel, 100*armadillo[0]->geCoverage(blevel));
 
     for (int i=1; i<N; ++i) {
         armadillo[i] = new Mesh(*armadillo[i-1]);
@@ -67,7 +68,8 @@ void GlVisuals::loadScene()
     cout << " * Car * " << endl;
     car[0] = new Mesh("Model_2.obj", 1, 0);
     car[0]->setSize(scene_size/3);
-    printf("Mesh volume coverage:\t%4.2f%% \n", 100*car[0]->getBoundingCoverage());
+    for (int blevel=0; blevel<=BVL; blevel++)
+        printf("Mesh volume coverage Level %d:\t%4.2f%% \n", blevel, 100*car[0]->geCoverage(blevel));
 
     for (int i=1; i<N; ++i) {
         car[i] = new Mesh(*car[i-1]);
@@ -90,20 +92,17 @@ void GlVisuals::loadScene()
 
 void GlVisuals::drawScene()
 {
-    //armadillo[0]->draw (Colour(0x66,0x66,0), SOLID | VOXELS | (0==selObj?AABB:0));return;
+    Point t;
     for (int i=0; i<N; ++i) {
-        car[i]         ->draw (Colour(0,0x66,0x66), SOLID | VOXELS | (i==selObj?AABB:0));
-        armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | VOXELS | (i==selObj?AABB:0));
-        intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE  | (i==selObj?AABB:0));
+        car[i]->draw (Colour(0,0x66,0x66), SOLID | VOXELS | ((i==selObj)?AABB:0));
+        armadillo[i]->draw (Colour(0x66,0x66,0), SOLID | VOXELS | ((i==selObj)?AABB:0));
+        intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE  | ((i==selObj)?AABB:0));
     }
 }
 
 void GlVisuals::intersectScene()
 {
     cout << " * Intersections * " << endl;
-
-    float t = armadillo[0]->getBox().getZSize();
-
     if (selObj>=0) {
         for (int i=0; i<N; ++i) {
             delete intersection[i];
@@ -170,7 +169,7 @@ void GlVisuals::glPaint()
 
     /* Push away the scene */
     glTranslatef(0,0,-scene_dist);
-    drawAxes();
+
     /* Apply global transformations */
     glTranslatef(globalTranslation.x, globalTranslation.y, globalTranslation.z);
     glRotatef(globalRot.x, 1, 0, 0);
@@ -209,14 +208,15 @@ void GlVisuals::setEllapsedMillis(int millis)
         t = ((millis-milli0)/1000.0);
 }
 
-void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y)
+void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
 {
     key = tolower(key);
 
-    if (up) selObj = -1;
+	if (up) {}//selObj = -1;
     else {
         if (key>='x' && key <='z') selT = key;
         else if (key>='1' && key <= ('0'+N)) selObj = key-'0'-1;
+		else if (key == '0') selObj = -1;
         else if (key=='i') intersectScene();
     }
 }
@@ -226,13 +226,13 @@ void GlVisuals::arrowEvent (int dir, int modif)
     if (selObj<0)
     {
         Point &t = globalTranslation;
-        float &e = dir&2? t.x : t.y;
+        float &e = modif? t.z : dir&2? t.x : t.y;
         e = dir&1? e - scene_size/20: e + scene_size/20;
     }
     else
     {
         Point t(0,0,0);
-        float &e = dir&2? t.z : t.x;
+        float &e = modif? t.y : dir&2? t.z : t.x;
         e = dir&1? e - scene_size/20: e + scene_size/20;
         armadillo[selObj]->translate(t);
     }
@@ -249,6 +249,7 @@ void GlVisuals::mouseMoved(int x, int y, int modif)
     int dx = x - mouselastX;
     int dy = y - mouselastY;
 
+    //if (selObj<0){
     if (!modif) {
         globalRot.y += (dx>>1);
         globalRot.z += (dy>>1);
@@ -256,6 +257,20 @@ void GlVisuals::mouseMoved(int x, int y, int modif)
         globalRot.y += (dx>>1);
         globalRot.x += (dy>>1);
     }
+    //}
+    //else {
+        /*Dont rotate
+        Point lRot(armadillo[selObj]->getLocalRotation());
+        if (!modif) {
+            lRot.y += (dx>>1);
+            lRot.z += (dy>>1);
+        } else {
+            lRot.y += (dx>>1);
+            lRot.x += (dy>>1);
+        }
+        armadillo[selObj]->setLocalRotation(lRot);
+        */
+    //}
 
     mouselastX = x;
     mouselastY = y;
@@ -273,7 +288,7 @@ void GlVisuals::mouseWheel(int dir, int modif)
         Point t(0,0,0);
         float &e = t.y;
         e += scene_size/20 * (dir?-1:+1);
-        armadillo[selObj]->translate(t);
+        armadillo[selObj]->setLocalTranslation(t);
     }
 
 }

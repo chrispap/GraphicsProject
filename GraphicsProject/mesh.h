@@ -17,18 +17,10 @@
 #include <GL/glu.h>
 #endif
 
+#define BVL 3
+#define VDIV 50
+
 using namespace std;
-
-#define BVL 6
-
-enum Style {
-    SOLID   = (1<<0),
-    WIRE    = (1<<1),
-    NORMALS = (1<<2),
-    AABB    = (1<<3),
-    TBOXES  = (1<<4),
-    VOXELS  = (1<<5)
-};
 
 class Mesh
 {
@@ -39,8 +31,7 @@ class Mesh
     vector<list<int> > mAABBTriangles;  // Triangles of each hierarchy level
     vector<Box> mAABB;                  // The bounding box hierarchy of the 3d model
     vector<Box> mVoxels;
-    float coverage;
-
+    float coverage[BVL+1];
 
     void createBoundingBox ();
     void createTriangleLists ();
@@ -51,7 +42,6 @@ class Mesh
     void drawNormals (const Colour &col);
     void drawAABB (const Colour &col);
     void drawVoxels (const Colour &col);
-
 
     static void loadTrianglesFromOBJ (string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt=0);
     static void findCollisions (const Mesh &m1, const Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
@@ -68,13 +58,23 @@ public:
     void setSize (float size);
     void translate (const Point &p);
     void setLocalTranslation (const Point &p) {localTranslation = p;}
+    void setLocalRotation (const Point &p) {localRot = p;}
     void reduce (int LoD=1);
     void draw (const Colour &col, int x);
 
     const Point &getLocalTranslation() const { return localTranslation;}
     const Point &getLocalRotation() const { return localRot;}
-    float getBoundingCoverage() const { return coverage;}
+    float geCoverage(int level) const { return coverage[level];}
     const Box &getBox () const { return mAABB[0];}
+};
+
+enum Style {
+    SOLID   = (1<<0),
+    WIRE    = (1<<1),
+    NORMALS = (1<<2),
+    AABB    = (1<<3),
+    TBOXES  = (1<<4),
+    VOXELS  = (1<<5)
 };
 
 #endif

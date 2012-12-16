@@ -8,6 +8,7 @@
 #endif
 
 static GlVisuals *visuals;
+static int modif=0;
 
 void timerFired(int val)
 {
@@ -27,7 +28,7 @@ void Resize(int w, int h)
     visuals->glResize(w, h);
 }
 
-void Modif(int *modif)
+void mkModif(int *modif)
 {
     unsigned char ctrl =  (*modif & GLUT_ACTIVE_CTRL)?  1: 0;
     unsigned char shift = (*modif & GLUT_ACTIVE_SHIFT)? 1: 0;
@@ -36,23 +37,28 @@ void Modif(int *modif)
 
 void mouseEvent(int button, int state, int x, int y)
 {
+	modif = glutGetModifiers();
+	mkModif(&modif);
+
     if (state == GLUT_UP) 
         return;    
 
     if ((button == 3) || (button == 4)) { // Wheel event
-
-        visuals->mouseWheel(button==3);
+		cout << "???";
+        visuals->mouseWheel(button==3, modif);
         glutPostRedisplay();
 
     } else { // Click event
-        visuals->mousePressed(x,y);
+        visuals->mousePressed(x,y,modif);
     }
 }
 
 void mouseMotion(int x, int y)
 {
-    int modif = glutGetModifiers();
-    Modif(&modif);
+#ifdef __linux__
+	modif = glutGetModifiers();
+#endif
+    mkModif(&modif);
     
     visuals->mouseMoved(x,y, modif);
     glutPostRedisplay();
@@ -60,8 +66,11 @@ void mouseMotion(int x, int y)
 
 void KeyEvent(unsigned char key, bool updown, int x, int y)
 {
+	modif = glutGetModifiers();
+	mkModif(&modif);
+
     if (key==27 ) exit(0);
-    visuals->keyEvent(key, updown, x, y);
+    visuals->keyEvent(key, updown, x, y, modif);
     glutPostRedisplay();
 }
 
@@ -78,6 +87,8 @@ void KeyDownEvent(unsigned char key, int x, int y)
 void SpeciaEvent (int key, int x, int y)
 {
     ArrowDir dir;
+	modif = glutGetModifiers();
+	mkModif(&modif);
 
     if      (key == GLUT_KEY_UP) dir = UP;
     else if (key == GLUT_KEY_DOWN) dir = DOWN;
@@ -85,7 +96,7 @@ void SpeciaEvent (int key, int x, int y)
     else if (key == GLUT_KEY_LEFT) dir = LEFT;
     else return;
 
-    visuals->arrowEvent(dir);
+    visuals->arrowEvent(dir, modif);
     glutPostRedisplay();
 }
 

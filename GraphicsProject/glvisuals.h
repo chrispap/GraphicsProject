@@ -49,7 +49,7 @@ public:
     const Point &getGlobalRotation () {return globalRot;}
     const Point &getGlobalTranslation () {return globalTranslation;}
 
-    void keyEvent (unsigned char key, bool up=false, int x=0, int y=0 );
+    void keyEvent (unsigned char key, bool up=false, int x=0, int y=0, int modif=0);
     void arrowEvent (int dir, int modif=0);
     void mousePressed (int x, int y, int modif=0);
     void mouseMoved (int x, int y, int modif=0);

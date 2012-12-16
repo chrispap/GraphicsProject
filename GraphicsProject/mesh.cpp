@@ -24,8 +24,7 @@ Mesh::Mesh(string filename, bool ccw,  bool vt):
     localRot(0,0,0),
     localTranslation(0,0,0),
     mAABB((2<<BVL)-1),
-    mAABBTriangles((2<<BVL)-1),
-    coverage(0)
+    mAABBTriangles((2<<BVL)-1)
 {
     clock_t t = clock();
     loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
@@ -41,8 +40,7 @@ Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
     localRot(0,0,0),
     localTranslation(0,0,0),
     mAABB((2<<BVL)-1),
-    mAABBTriangles((2<<BVL)-1),
-    coverage(0)
+    mAABBTriangles((2<<BVL)-1)
 {
     clock_t t = clock();
     findCollisions(m1, m2, mVertices, mTriangles, both);
@@ -59,8 +57,7 @@ Mesh::Mesh(const Mesh &original):
     mAABB (original.mAABB),
     mAABBTriangles (original.mAABBTriangles),
     localRot (original.localRot),
-    localTranslation (original.localTranslation),
-    coverage (original.coverage)
+    localTranslation (original.localTranslation)
 {
     vector<Triangle>::iterator ti;
     for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti)
@@ -158,7 +155,7 @@ void Mesh::createBoundingBox()
 
 void Mesh::calculateVolume()
 {
-    const float dl = mAABB[0].getXSize()/50;
+    const float dl = mAABB[0].getXSize()/VDIV;
     if (dl<0.01) return;
 
     unsigned long int voxelCount=0;
@@ -186,14 +183,21 @@ void Mesh::calculateVolume()
                 ++voxelTotal;
             }
         }
-        printf ("\b\b\b\b\b\b\b");
+        printf ("\r");
     }
+    printf("         \r");
 
-    float boundingVol=0;
-    for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) boundingVol += mAABB[bi].getVolume();
+    /* Calculate the coverage for every level */
     float cover = ((float)voxelCount)/voxelTotal;
     float fullVol = mAABB[0].getVolume();
-    coverage = cover*fullVol/boundingVol;
+    coverage[0] = cover;
+
+    for (int bvlevel=1; bvlevel<=BVL; ++bvlevel) {
+        float boundingVol=0;
+        for (int bi=(1<<bvlevel) -1; bi< (2<<bvlevel) -1; ++bi)
+		    boundingVol += mAABB[bi].getVolume();
+        coverage[bvlevel] = cover*fullVol/boundingVol;
+    }
 }
 
 void Mesh::createTriangleLists()
@@ -514,13 +518,11 @@ void Mesh::draw(const Colour &col, int x)
     glRotatef(localRot.x, 1, 0, 0);
     glRotatef(localRot.y, 0, 1, 0);
     glRotatef(localRot.z, 0, 0, 1);
-
     if (x & VOXELS) drawVoxels(Colour(0,0xFF,0));
     if (x & SOLID) drawTriangles(col, false);
     if (x & WIRE) drawTriangles(Colour(0,0,0), true);
     if (x & NORMALS) drawNormals(Colour(0xFF,0,0));
     if (x & AABB) drawAABB(Colour(0xA5, 0x2A, 0x2A));
     if (x & TBOXES) drawTriangleBoxes(Colour(0xFF,0,0));
-
     glPopMatrix();
 }

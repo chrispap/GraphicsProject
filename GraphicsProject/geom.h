@@ -30,47 +30,20 @@ struct Point {
     };
 
     Point(){ }
-
     Point(float _x, float _y, float _z): x(_x), y(_y), z(_z) { }
-
-    void print()
-    {
-        cout << "(" << x << ", " << y << ", " << z << ")" << endl;
-    }
-
-    Point &add(const Point &v)
-    {
-        x += v.x; y += v.y; z += v.z;
-        return *this;
-    }
-
-    Point &sub(const Point &v)
-    {
-        x -= v.x; y -= v.y; z -= v.z;
-        return *this;
-    }
-
-    Point &scale(const float s)
-    {
-        x *= s; y *= s; z *= s;
-        return *this;
-    }
-
+    void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
+    Point &add(const Point &v) { x += v.x; y += v.y; z += v.z; return *this;}
+    Point &sub(const Point &v) {x -= v.x; y -= v.y; z -= v.z; return *this; }
+    Point &scale(const float s) { x *= s; y *= s; z *= s; return *this; }
 };
 
 struct Line
 {
     Point start, end;
 
-    Line()
-    {
-    }
-
-    Line(const Point &_start, const Point &_end): start(_start), end(_end) {}
-
-    ~Line(void)
-    {
-    }
+    Line() {}
+    Line (const Point &_start, const Point &_end): start(_start), end(_end) {}
+    ~Line(void) {}
 };
 
 struct Box
@@ -78,12 +51,8 @@ struct Box
     Point min;
     Point max;
 
-    Box()
-    {
-    }
-
+    Box() {}
     Box(const Point &vmin, const Point &vmax): min(vmin), max(vmax) {}
-
     Box(const Point &v1, const Point &v2, const Point &v3)
     {
         min = Point(std::min(v1.x, std::min(v2.x, v3.x)),
@@ -92,14 +61,17 @@ struct Box
         max = Point(std::max(v1.x, std::max(v2.x, v3.x)),
                     std::max(v1.y, std::max(v2.y, v3.y)),
                     std::max(v1.z, std::max(v2.z, v3.z)));
-
     }
 
     float getXSize() const { return max.x - min.x;}
     float getYSize() const { return max.y - min.y;}
     float getZSize() const { return max.z - min.z;}
-    float getVolume() const{ return (max.x - min.x)*(max.y - min.y)*(max.z - min.z);}
+    float getVolume() const { return (max.x - min.x)*(max.y - min.y)*(max.z - min.z); }
 
+    Box &add(const Point &v) { min.add(v); max.add(v); return *this; }
+    Box &sub(const Point &v){min.sub(v); max.sub(v);return *this; }
+    Box &scale(const float s){min.scale(s); max.scale(s);return *this;}
+ 
     void draw(const Colour &col, unsigned char a=0) const
     {
         Point p[8] = {
@@ -149,28 +121,6 @@ struct Box
         glVertex3fv(p[4].data);
         glEnd();
     }
-
-    Box &add(const Point &v)
-    {
-        min.add(v);
-        max.add(v);
-        return *this;
-    }
-
-    Box &sub(const Point &v)
-    {
-        min.sub(v);
-        max.sub(v);
-        return *this;
-    }
-
-    Box &scale(const float s)
-    {
-        min.scale(s);
-        max.scale(s);
-        return *this;
-    }
-
 };
 
 struct Triangle
@@ -208,13 +158,11 @@ struct Triangle
     const Point getNormal2() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3).add(Point(A,B,C));}
     const Point getCenter() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3);}
     float planeEquation(const Point &r) const { return A*r.x + B*r.y + C*r.z + D;}
-
 };
 
 class Geom {
 
 public:
-
     static Point crossprod (const Point &v1, const Point &v2)
     {
         return Point( v1.y * v2.z - v1.z * v2.y,
@@ -242,7 +190,6 @@ public:
         return code;
     }
 
-    // [Intersections of various shapes]
     static bool intersects (const Box &b1, const Box &b2)
     {
         return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
