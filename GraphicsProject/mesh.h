@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <list>
 #include <set>
 #include "geom.h"
 
@@ -18,7 +19,7 @@
 
 using namespace std;
 
-#define BVL			3
+#define BVL			4
 #define SOLID		(1<<0)
 #define WIRE		(1<<1)
 #define NORMALS		(1<<2)
@@ -27,16 +28,18 @@ using namespace std;
 
 class Mesh
 {
-	vector<Box> mBox;							// The bounding box hierarchy of the 3d model
-	vector<set<int> > mHierarchyVerticeLists;	// Triangles of each hierarchy level
-	vector<Point> mVertices;					// Vertex list
-	vector<Triangle> mTriangles;				// Triangle list | contains indices to the Vertex list
-	vector<set<int> > mVertexTriangles;			// List of lists of the triangles that are connected to each vertex
-	Point localRot, localTranslation;			// Transformations
+	vector<Point> mVertices;			// Vertex list
+	vector<Triangle> mTriangles;		// Triangle list | contains indices to the Vertex list
+	vector<set<int> > mVertexTriangles;	// List of lists of the triangles that are connected to each vertex
+	Point localRot, localTranslation;	// Transformations
+	vector<list<int> > mAABBTriangles;	// Triangles of each hierarchy level
+	vector<Box> mAABB;					// The bounding box hierarchy of the 3d model
+	float coverage;
 
 	void createBoundingBox ();
 	void createTriangleLists ();
 	void updateTriangleData ();
+	void calculateVolume();
 	void drawTriangles (const Colour &col, bool wire=0);
     void drawTriangleBoxes (const Colour &col);
     void drawNormals (const Colour &col);
@@ -52,7 +55,6 @@ public:
 	Mesh (const Mesh &original);
 	~Mesh (void);
 
-	float boxCoverage();
 	void alignLocalCorner ();
 	void alignLocalCenter ();
 	void setSize (float size);
@@ -63,7 +65,8 @@ public:
 
     const Point &getLocalTranslation() const { return localTranslation;}
     const Point &getLocalRotation() const { return localRot;}
-    const Box &getBox () const { return mBox[0];}
+    float getBoundingCoverage() const { return coverage;}
+    const Box &getBox () const { return mAABB[0];}
 };
 
 #endif

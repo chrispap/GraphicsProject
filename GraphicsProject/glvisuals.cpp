@@ -51,10 +51,13 @@ void GlVisuals::loadModels()
 	armadillo[0] = new Mesh("Model_1.obj", 0, 0);
 	armadillo[0]->alignLocalCenter();
 	armadillo[0]->setSize(scene_size/2);
+	printf("Mesh volume coverage:\t%4.2f%% \n", 100*armadillo[0]->getBoundingCoverage());
+	
 	for (int i=1; i<5; ++i) {
 		armadillo[i] = new Mesh(*armadillo[i-1]);
 		armadillo[i]->reduce();
 	}
+	
 	cout << endl;
 
 	/* Load Model 2 */
@@ -62,6 +65,8 @@ void GlVisuals::loadModels()
 	car[0] = new Mesh("Model_2.obj", 1, 0);
 	car[0]->alignLocalCenter();
 	car[0]->setSize(scene_size/3);
+	printf("Mesh volume coverage:\t%4.2f%% \n", 100*car[0]->getBoundingCoverage());
+	
 	for (int i=1; i<5; ++i) {
 		car[i] = new Mesh(*car[i-1]);
 		car[i]->reduce();
@@ -162,7 +167,11 @@ void GlVisuals::glPaint()
 	glRotatef(globalRot.y, 0, 1, 0);
 	glRotatef(globalRot.z, 0, 0, 1);
 	
-	drawScene();
+	for (int i=0; i<5; ++i) {
+		car[i]         ->draw (Colour(0,0x66,0x66), SOLID );
+		armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | WIRE | (i==selObj?AABB:0));
+		intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
+	}
 }
 
 /** Drawing Methods */
@@ -183,15 +192,6 @@ void GlVisuals::drawAxes()
 	glVertex3f(0.0,0.0,10.0*scene_size);
 
 	glEnd();
-}
-
-void GlVisuals::drawScene()
-{
-	for (int i=0; i<5; ++i) {
-		car[i]         ->draw (Colour(0,0x66,0x66), SOLID );
-		armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | (i==selObj?AABB:0));
-		intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
-	}
 }
 
 /** UI Methods */

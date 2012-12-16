@@ -98,6 +98,7 @@ struct Box
     float getXSize() const { return max.x - min.x;}
     float getYSize() const { return max.y - min.y;}
     float getZSize() const { return max.z - min.z;}
+    float getVolume() const{ return (max.x - min.x)*(max.y - min.y)*(max.z - min.z);}
 
     void draw(Colour col, unsigned char a=0) const
     {
@@ -192,9 +193,13 @@ struct Box
 };
 
 struct Triangle
-{	
+{
+	union {					
+        struct { int vi1, vi2, vi3;};
+        int v[3];
+    };						// Indices to the above vector
     vector<Point> *vecList;	// Pointer to the vector containing the mVertices
-    int vi1, vi2, vi3;		// Indices to the above vector
+    
     float A, B, C, D;		// Plane equation coefficients
     Box box;				// Bounding box of the triangle
     bool deleted;			// Flag indicating that a triangle should be considered deleted

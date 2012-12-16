@@ -23,28 +23,31 @@
 Mesh::Mesh(string filename, bool ccw,  bool vt):
     localRot(0,0,0),
     localTranslation(0,0,0),
-    mBox((2<<BVL)-1),
-    mHierarchyVerticeLists((2<<BVL)-1)
+    mAABB((2<<BVL)-1),
+    mAABBTriangles((2<<BVL)-1),
+    coverage(0)
 {	
     clock_t t = clock();
     loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
     createTriangleLists();
-    createBoundingBox();
     updateTriangleData();
+    createBoundingBox();
+    calculateVolume();
     printf ("Mesh loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
     localRot(0,0,0),
     localTranslation(0,0,0),
-    mBox((2<<BVL)-1),
-    mHierarchyVerticeLists((2<<BVL)-1)
+    mAABB((2<<BVL)-1),
+    mAABBTriangles((2<<BVL)-1),
+    coverage(0)
 {
     clock_t t = clock();
     findCollisions(m1, m2, mVertices, mTriangles, both);
     createTriangleLists();
-    createBoundingBox();
     updateTriangleData();
+    createBoundingBox();
     printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
@@ -52,10 +55,11 @@ Mesh::Mesh(const Mesh &original):
     mVertices (original.mVertices),
     mTriangles (original.mTriangles),
     mVertexTriangles (original.mVertexTriangles),
-    mBox (original.mBox),
-    mHierarchyVerticeLists (original.mHierarchyVerticeLists),
+    mAABB (original.mAABB),
+    mAABBTriangles (original.mAABBTriangles),
     localRot (original.localRot),
-    localTranslation (original.localTranslation)
+    localTranslation (original.localTranslation),
+    coverage (original.coverage)
 {
     vector<Triangle>::iterator ti;
     for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti)
@@ -84,95 +88,85 @@ void Mesh::createBoundingBox()
         boxMin.z = vi->z < boxMin.z? vi->z: boxMin.z;
     }
 
-    mBox[0] = Box(boxMin, boxMax);
+    mAABB[0] = Box(boxMin, boxMax);
 
     /* Levels of Hierrarchy */
-    int ti=0;
-    set<int>::iterator vli;
-    vli = mHierarchyVerticeLists[0].begin();
-    for (ti=0; ti < mVertices.size(); ++ti)
-        mHierarchyVerticeLists[0].insert(vli, ti);
+    for (int ti=0; ti < mTriangles.size(); ++ti)
+        mAABBTriangles[0].push_back(ti);
 
     for (int bvlevel=0; bvlevel<BVL; ++bvlevel) { 		// For each level of hierarchy...
-        for (int div=0; div < (1<<bvlevel); ++div) { 	// for each node of this level...
-            Point boxMin1,boxMax1,boxMin2,boxMax2;		// divide the node in two nodes.
+        for (int div=0; div < (1<<bvlevel); ++div) { 	// ...for each node of this level, split the node to half.
+        
+            int parent = (1<<bvlevel) -1+div;
+            int ch1 = 2*parent+1;
+			int ch2 = 2*parent+2;
+            Point &min = mAABB[parent].min;
+            Point &max = mAABB[parent].max;
+            float limX = (max.x + min.x)/2;
+			Box box1 (min, Point(limX, max.y, max.z));
+			Box box2 (Point(limX, min.y, min.z), max);
+            Point boxMin1,boxMax1,boxMin2,boxMax2;
             boxMin1.x = boxMin1.y = boxMin1.z = FLT_MAX;
             boxMax1.x = boxMax1.y = boxMax1.z = FLT_MIN;
             boxMin2.x = boxMin2.y = boxMin2.z = FLT_MAX;
             boxMax2.x = boxMax2.y = boxMax2.z = FLT_MIN;
 
-            int node = (1<<bvlevel) -1+div;
-            int ch1 = 2*node+1;
-            int ch2 = 2*node+2;
-            int xyz = 0; // The dimension in which we "cut" the object in half.
-            float limit = (mBox[node].max.data[xyz] + mBox[node].min.data[xyz])/2;
-
-            set<int>::const_iterator bvi;
-            for (bvi=mHierarchyVerticeLists[node].begin(); bvi!=mHierarchyVerticeLists[node].end(); ++bvi) {
-                Point &v = mVertices[*bvi];
-                if (v.data[xyz] < limit) {
-                    mHierarchyVerticeLists[ch1].insert(*bvi);
-                    boxMax1.x = v.x > boxMax1.x? v.x: boxMax1.x;
-                    boxMax1.y = v.y > boxMax1.y? v.y: boxMax1.y;
-                    boxMax1.z = v.z > boxMax1.z? v.z: boxMax1.z;
-                    boxMin1.x = v.x < boxMin1.x? v.x: boxMin1.x;
-                    boxMin1.y = v.y < boxMin1.y? v.y: boxMin1.y;
-                    boxMin1.z = v.z < boxMin1.z? v.z: boxMin1.z;
-                } else {
-                    mHierarchyVerticeLists[ch2].insert(*bvi);
-                    boxMax2.x = v.x > boxMax2.x? v.x: boxMax2.x;
-                    boxMax2.y = v.y > boxMax2.y? v.y: boxMax2.y;
-                    boxMax2.z = v.z > boxMax2.z? v.z: boxMax2.z;
-                    boxMin2.x = v.x < boxMin2.x? v.x: boxMin2.x;
-                    boxMin2.y = v.y < boxMin2.y? v.y: boxMin2.y;
-                    boxMin2.z = v.z < boxMin2.z? v.z: boxMin2.z;
-                }
+            list<int>::const_iterator bvi;
+            for (bvi=mAABBTriangles[parent].begin(); bvi!=mAABBTriangles[parent].end(); ++bvi) {
+                Triangle &t = mTriangles[*bvi];
+                bool b1 = Geom::intersects(box1, t.getBox());
+                mAABBTriangles[b1?ch1:ch2].push_back(*bvi);
+                Point &bmin = b1? boxMin1: boxMin2;
+                Point &bmax = b1? boxMax1: boxMax2;
+                for (int vi=0; vi<3; ++vi) {
+					Point &v = mVertices[t.v[vi]];
+					bmax.x = v.x > bmax.x? v.x: bmax.x;
+					bmax.y = v.y > bmax.y? v.y: bmax.y;
+					bmax.z = v.z > bmax.z? v.z: bmax.z;
+					bmin.x = v.x < bmin.x? v.x: bmin.x;
+					bmin.y = v.y < bmin.y? v.y: bmin.y;
+					bmin.z = v.z < bmin.z? v.z: bmin.z;
+				}
             }
-
-            mBox[ch1] = Box(boxMin1, boxMax1);
-            mBox[ch2] = Box(boxMin2, boxMax2);
+			
+            mAABB[ch1] = Box(boxMin1, boxMax1);
+            mAABB[ch2] = Box(boxMin2, boxMax2);
         }
     }
 }
 
-float Mesh::boxCoverage()
+void Mesh::calculateVolume()
 {
-    int voxelCount=0, intersectionsCount;
-    Point ray_far = Point(mBox[0].max).scale(3);
+	const float dl = mAABB[0].getXSize()/10;
+	if (dl<0.01) return;
+	 
+    unsigned long int voxelCount=0;
+    unsigned long int voxelTotal=0;
+    Point ray_far = Point(mAABB[0].max).scale(3);
+	
+	for (float x=dl/2; x<mAABB[0].max.x; x+=dl) {
+		for (float y=dl/2; y<mAABB[0].max.y; y+=dl) {
+			for (float z=dl/2; z<mAABB[0].max.z; z+=dl) 
+			{
+				int intersectionsCount=0;
+				Line ray (Point(x,y,z), ray_far);
+				vector<Triangle>::const_iterator ti;
+				for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
+					if ((Geom::mkcode(ray.start, ti->getBox()) & Geom::mkcode(ray.end, ti->getBox())) != 0) continue;
+					if ( Geom::intersects(*ti, ray)) ++intersectionsCount;
+				}
+				if (intersectionsCount%2 == 1) ++voxelCount;
+				++voxelTotal;
+			}
+		}
+	}
 
-    const float xm=10, ym=10, zm=10;
-    float dx = (mBox[0].max.x - mBox[0].min.x)/xm;
-    float dy = (mBox[0].max.y - mBox[0].min.y)/ym;
-    float dz = (mBox[0].max.z - mBox[0].min.z)/zm;
-
-    for (int x=0; x<xm; ++x) {
-        printf("\b\b\b\b");
-        for (int y=0; y<ym; ++y) {
-            for (int z=0; z<zm; ++z) {
-                intersectionsCount=0;
-                Line ray (Point(mBox[0].min.x+dx*x, mBox[0].min.y+dy*y, mBox[0].min.z+dz*z), ray_far);
-
-                vector<Triangle>::const_iterator ti;
-                for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti){
-                    if ((Geom::mkcode(ray.start, ti->getBox()) &
-                         Geom::mkcode(ray.end,   ti->getBox())) != 0)
-                        continue;
-
-                    if (Geom::intersects(*ti, ray))
-                        ++intersectionsCount;
-                }
-
-                if (intersectionsCount%2 == 1)
-                    ++voxelCount;
-            }
-        }
-
-        int perc = (100*(x+1))/xm;
-        printf("%3d%%", perc);
-    }
-
-    cout << endl;
-    return (float)(voxelCount) / (xm*ym*zm);
+	float boundingVol=0;
+	for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) boundingVol += mAABB[bi].getVolume();
+	float cover = ((float)voxelCount)/voxelTotal;
+	float netVol = cover * mAABB[0].getVolume();
+	
+    coverage = netVol/boundingVol;
 }
 
 void Mesh::createTriangleLists()
@@ -275,16 +269,16 @@ void Mesh::findCollisions(const Mesh &m1, const Mesh &m2, vector<Point> &vertice
 /* Editing */
 void Mesh::setSize(float size)
 {
-    float s = size / (max(mBox[0].max.x-mBox[0].min.x,
-                          max(mBox[0].max.y-mBox[0].min.y,
-                              mBox[0].max.z-mBox[0].min.z)));
+    float s = size / (max(mAABB[0].max.x-mAABB[0].min.x,
+                          max(mAABB[0].max.y-mAABB[0].min.y,
+                              mAABB[0].max.z-mAABB[0].min.z)));
 
     vector<Point>::iterator vi;
     for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
         vi->scale(s);
 
     for (int bi=0; bi<(2<<BVL)-1; ++bi)
-        mBox[bi].scale(s);
+        mAABB[bi].scale(s);
 
     updateTriangleData();
 }
@@ -296,7 +290,7 @@ void Mesh::translate(const Point &p)
         vi->add(p);
 
     for (int bi=0; bi<(2<<BVL)-1; ++bi)
-        mBox[bi].add(p);
+        mAABB[bi].add(p);
 
     updateTriangleData();
 }
@@ -305,18 +299,18 @@ void Mesh::alignLocalCorner()
 {
     vector<Point>::iterator vi;
     for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
-        vi->sub(mBox[0].min);
+        vi->sub(mAABB[0].min);
 
     for (int bi=0; bi<(2<<BVL)-1; ++bi)
-        mBox[bi].sub(Point(mBox[0].min));
+        mAABB[bi].sub(Point(mAABB[0].min));
 
     updateTriangleData();
 }
 
 void Mesh::alignLocalCenter()
 {
-    Point c2(mBox[0].max);
-    Point c1(mBox[0].min);
+    Point c2(mAABB[0].max);
+    Point c1(mAABB[0].min);
     c2.sub(c1);
     c2.scale(0.5);
     c1.add(c2);
@@ -326,7 +320,7 @@ void Mesh::alignLocalCenter()
         vi->sub(c1);
 
     for (int bi=0; bi<(2<<BVL)-1; ++bi)
-        mBox[bi].sub(c1);
+        mAABB[bi].sub(c1);
 
     updateTriangleData();
 }
@@ -455,11 +449,11 @@ void Mesh::drawNormals(const Colour &col)
 
 void Mesh::drawAABB(const Colour &col)
 {
-	mBox[0].draw(col, 0);
+	mAABB[0].draw(col, 0);
 	
     // Draw only the leaves of the tree (last level of hierarchy */
     for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi)
-        mBox[bi].draw(col, 0x80);
+        mAABB[bi].draw(col, 0x80);
 }
 
 void Mesh::draw(const Colour &col, int x)

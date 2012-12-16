@@ -28,8 +28,7 @@ class GlVisuals
 
 	void loadModels();
 	void intersectModels();
-    inline void drawAxes();
-    inline void drawScene();
+    void drawAxes();
 
 	Mesh *armadillo[5];
 	Mesh *car[5];
