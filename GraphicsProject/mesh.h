@@ -19,7 +19,7 @@
 
 using namespace std;
 
-#define BVL			4
+#define BVL			2
 #define SOLID		(1<<0)
 #define WIRE		(1<<1)
 #define NORMALS		(1<<2)

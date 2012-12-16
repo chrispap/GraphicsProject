@@ -48,7 +48,7 @@ void GlVisuals::loadModels()
 {
 	/* Load Model 1 */
 	cout << " * Armadillo * " << endl;
-	armadillo[0] = new Mesh("Model_1.obj", 0, 0);
+	armadillo[0] = new Mesh("/home/chris/braxos1.obj", 0, 0);
 	armadillo[0]->alignLocalCenter();
 	armadillo[0]->setSize(scene_size/2);
 	printf("Mesh volume coverage:\t%4.2f%% \n", 100*armadillo[0]->getBoundingCoverage());
@@ -140,8 +140,7 @@ void GlVisuals::glResize(int w, int h)
 		glViewport(0,0,w,h);
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		if (h>w) glOrtho(-scene_size, scene_size, -scene_size*h/w, scene_size*h/w, -10.0f*scene_size, 10.0f*scene_size);
-		else glOrtho(-scene_size*w/h, scene_size*w/h, -scene_size, scene_size, -10.0f*scene_size, 10.0f*scene_size);
+		if (h>w) glOrtho(-scene_size/2, scene_size/2, -scene_size/2*h/w, scene_size/2*h/w, -10.0f*scene_size/2, 10.0f*scene_size/2);
 	} else {
 		if (h==0) h=1;
 		glViewport(0,0,w,h);
@@ -167,8 +166,8 @@ void GlVisuals::glPaint()
 	glRotatef(globalRot.y, 0, 1, 0);
 	glRotatef(globalRot.z, 0, 0, 1);
 	
-	for (int i=0; i<5; ++i) {
-		car[i]         ->draw (Colour(0,0x66,0x66), SOLID );
+	for (int i=0; i<1; ++i) {
+		car[i]         ->draw (Colour(0,0x66,0x66), WIRE | AABB );
 		armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | WIRE | (i==selObj?AABB:0));
 		intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
 	}

@@ -26,7 +26,7 @@ Mesh::Mesh(string filename, bool ccw,  bool vt):
     mAABB((2<<BVL)-1),
     mAABBTriangles((2<<BVL)-1),
     coverage(0)
-{	
+{
     clock_t t = clock();
     loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
     createTriangleLists();
@@ -80,12 +80,12 @@ void Mesh::createBoundingBox()
 
     vector<Point>::const_iterator vi;
     for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
-        boxMax.x = vi->x > boxMax.x? vi->x: boxMax.x;
-        boxMax.y = vi->y > boxMax.y? vi->y: boxMax.y;
-        boxMax.z = vi->z > boxMax.z? vi->z: boxMax.z;
-        boxMin.x = vi->x < boxMin.x? vi->x: boxMin.x;
-        boxMin.y = vi->y < boxMin.y? vi->y: boxMin.y;
-        boxMin.z = vi->z < boxMin.z? vi->z: boxMin.z;
+        if (vi->x > boxMax.x) boxMax.x = vi->x;
+        else if (vi->x < boxMin.x) boxMin.x = vi->x;
+        if (vi->y > boxMax.y) boxMax.y = vi->y;
+        else if (vi->y < boxMin.y) boxMin.y = vi->y;
+        if (vi->z > boxMax.z) boxMax.z = vi->z;
+        else if (vi->z < boxMin.z) boxMin.z = vi->z;
     }
 
     mAABB[0] = Box(boxMin, boxMax);
@@ -120,14 +120,30 @@ void Mesh::createBoundingBox()
                 Point &bmax = b1? boxMax1: boxMax2;
                 for (int vi=0; vi<3; ++vi) {
 					Point &v = mVertices[t.v[vi]];
-					bmax.x = v.x > bmax.x? v.x: bmax.x;
-					bmax.y = v.y > bmax.y? v.y: bmax.y;
-					bmax.z = v.z > bmax.z? v.z: bmax.z;
-					bmin.x = v.x < bmin.x? v.x: bmin.x;
-					bmin.y = v.y < bmin.y? v.y: bmin.y;
-					bmin.z = v.z < bmin.z? v.z: bmin.z;
+					if (v.x > bmax.x) bmax.x = v.x;
+					else if (v.x < bmin.x) bmin.x = v.x;
+					if (v.y > bmax.y) bmax.y = v.y;
+					else if (v.y < bmin.y) bmin.y = v.y;
+					if (v.z > bmax.z) bmax.z = v.z;
+					else if (v.z < bmin.z) bmin.z = v.z;
 				}
             }
+			
+			if (boxMin1.x<box1.min.x) boxMin1.x = box1.min.x;
+			if (boxMin1.y<box1.min.y) boxMin1.y = box1.min.y;
+			if (boxMin1.z<box1.min.z) boxMin1.z = box1.min.z;
+			
+			if (boxMax1.x>box1.max.x) boxMax1.x = box1.max.x;
+			if (boxMax1.y>box1.max.y) boxMax1.y = box1.max.y;
+			if (boxMax1.z>box1.max.z) boxMax1.z = box1.max.z;
+			
+			if (boxMin2.x<box2.min.x) boxMin2.x = box2.min.x;
+			if (boxMin2.y<box2.min.y) boxMin2.y = box2.min.y;
+			if (boxMin2.z<box2.min.z) boxMin2.z = box2.min.z;
+			
+			if (boxMax2.x>box2.max.x) boxMax2.x = box2.max.x;
+			if (boxMax2.y>box2.max.y) boxMax2.y = box2.max.y;
+			if (boxMax2.z>box2.max.z) boxMax2.z = box2.max.z;
 			
             mAABB[ch1] = Box(boxMin1, boxMax1);
             mAABB[ch2] = Box(boxMin2, boxMax2);
@@ -164,9 +180,8 @@ void Mesh::calculateVolume()
 	float boundingVol=0;
 	for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) boundingVol += mAABB[bi].getVolume();
 	float cover = ((float)voxelCount)/voxelTotal;
-	float netVol = cover * mAABB[0].getVolume();
-	
-    coverage = netVol/boundingVol;
+	float fullVol = mAABB[0].getVolume();
+    coverage = cover*fullVol/boundingVol;
 }
 
 void Mesh::createTriangleLists()
@@ -449,11 +464,13 @@ void Mesh::drawNormals(const Colour &col)
 
 void Mesh::drawAABB(const Colour &col)
 {
-	mAABB[0].draw(col, 0);
-	
-    // Draw only the leaves of the tree (last level of hierarchy */
-    for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi)
+    /* Draw only the main box and the
+     * leaves of the tree (last level of hierarchy */
+    //mAABB[0].draw(col, 0);
+    for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) {
+        mAABB[bi].draw(col, 0);
         mAABB[bi].draw(col, 0x80);
+	}
 }
 
 void Mesh::draw(const Colour &col, int x)
@@ -467,7 +484,7 @@ void Mesh::draw(const Colour &col, int x)
     if (x & SOLID) drawTriangles(col, false);
     if (x & WIRE) drawTriangles(Colour(0,0,0), true);
     if (x & NORMALS) drawNormals(Colour(0xFF,0,0));
-    if (x & AABB) drawAABB(Colour(0x80,0x10,0x10));
+    if (x & AABB) drawAABB(Colour(0xA5, 0x2A, 0x2A));
     if (x & TBOXES) drawTriangleBoxes(Colour(0xFF,0,0));
 
     glPopMatrix();
