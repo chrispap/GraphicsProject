@@ -100,7 +100,7 @@ struct Box
     float getZSize() const { return max.z - min.z;}
     float getVolume() const{ return (max.x - min.x)*(max.y - min.y)*(max.z - min.z);}
 
-    void draw(Colour col, unsigned char a=0) const
+    void draw(const Colour &col, unsigned char a=0) const
     {
         Point p[8] = {
             Point(min.x, min.y, min.z), //0
@@ -112,7 +112,7 @@ struct Box
             Point(max.x, max.y, max.z), //6
             Point(max.x, min.y, max.z), //7
         };
-        
+
         glPolygonMode(GL_FRONT_AND_BACK, a?GL_FILL: GL_LINE);
         glBegin(GL_QUADS);
         if (a) glColor4ub(col.r, col.g, col.b, a);

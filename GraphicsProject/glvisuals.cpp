@@ -89,9 +89,9 @@ void GlVisuals::loadScene()
 void GlVisuals::drawScene()
 {
     for (int i=0; i<N; ++i) {
-        car[i]         ->draw (Colour(0,0x66,0x66), SOLID | WIRE | (i==selObj?AABB:0));
-        armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | WIRE | (i==selObj?AABB:0));
-        intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
+        car[i]         ->draw (Colour(0,0x66,0x66), SOLID | VOXELS | (i==selObj?AABB:0));
+        armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | VOXELS | (i==selObj?AABB:0));
+        intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE  | (i==selObj?AABB:0));
     }
 }
 
@@ -128,7 +128,7 @@ void GlVisuals::glInitialize()
     glClearDepth(1.0);
 
     //glEnable(GL_CULL_FACE);
-    //glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

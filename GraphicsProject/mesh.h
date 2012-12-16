@@ -19,12 +19,16 @@
 
 using namespace std;
 
-#define BVL         3
-#define SOLID       (1<<0)
-#define WIRE        (1<<1)
-#define NORMALS     (1<<2)
-#define AABB        (1<<3)
-#define TBOXES      (1<<4)
+#define BVL 3
+
+enum Style {
+    SOLID   = (1<<0),
+    WIRE    = (1<<1),
+    NORMALS = (1<<2),
+    AABB    = (1<<3),
+    TBOXES  = (1<<4),
+    VOXELS  = (1<<5)
+};
 
 class Mesh
 {
@@ -34,7 +38,9 @@ class Mesh
     Point localRot, localTranslation;   // Transformations
     vector<list<int> > mAABBTriangles;  // Triangles of each hierarchy level
     vector<Box> mAABB;                  // The bounding box hierarchy of the 3d model
+    vector<Box> mVoxels;
     float coverage;
+
 
     void createBoundingBox ();
     void createTriangleLists ();
@@ -44,6 +50,8 @@ class Mesh
     void drawTriangleBoxes (const Colour &col);
     void drawNormals (const Colour &col);
     void drawAABB (const Colour &col);
+    void drawVoxels (const Colour &col);
+
 
     static void loadTrianglesFromOBJ (string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt=0);
     static void findCollisions (const Mesh &m1, const Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);

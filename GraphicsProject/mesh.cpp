@@ -157,16 +157,16 @@ void Mesh::createBoundingBox()
 
 void Mesh::calculateVolume()
 {
-    const float dl = mAABB[0].getXSize()/10;
+    const float dl = mAABB[0].getXSize()/100;
     if (dl<0.01) return;
 
     unsigned long int voxelCount=0;
     unsigned long int voxelTotal=0;
-    Point ray_far = Point(mAABB[0].max).scale(3);
+    Point ray_far = Point(458,789,665);//mAABB[0].max).scale(3);
 
-    for (float x=dl/2; x<mAABB[0].max.x; x+=dl) {
-        for (float y=dl/2; y<mAABB[0].max.y; y+=dl) {
-            for (float z=dl/2; z<mAABB[0].max.z; z+=dl)
+    for (float x=mAABB[0].min.x+dl/2; x<mAABB[0].max.x; x+=dl) {
+        for (float y=mAABB[0].min.y+dl/2; y<mAABB[0].max.y; y+=dl) {
+            for (float z=mAABB[0].min.z+dl/2; z<mAABB[0].max.z; z+=dl)
             {
                 int intersectionsCount=0;
                 Line ray (Point(x,y,z), ray_far);
@@ -175,7 +175,10 @@ void Mesh::calculateVolume()
                     if ((Geom::mkcode(ray.start, ti->getBox()) & Geom::mkcode(ray.end, ti->getBox())) != 0) continue;
                     if ( Geom::intersects(*ti, ray)) ++intersectionsCount;
                 }
-                if (intersectionsCount%2 == 1) ++voxelCount;
+                if (intersectionsCount%2 == 1){
+                    mVoxels.push_back( Box (Point(x-dl/2.2, y-dl/2.2, z-dl/2.2), Point(x+dl/2.2, y+dl/2.2, z+dl/2.2)));
+                     ++voxelCount;
+                 }
                 ++voxelTotal;
             }
         }
@@ -290,12 +293,16 @@ void Mesh::findCollisions(const Mesh &m1, const Mesh &m2, vector<Point> &vertice
 void Mesh::setSize(float size)
 {
     float s = size / (max(mAABB[0].max.x-mAABB[0].min.x,
-                          max(mAABB[0].max.y-mAABB[0].min.y,
-                              mAABB[0].max.z-mAABB[0].min.z)));
+                      max(mAABB[0].max.y-mAABB[0].min.y,
+                      mAABB[0].max.z-mAABB[0].min.z)));
 
     vector<Point>::iterator vi;
     for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
         vi->scale(s);
+
+    vector<Box>::iterator pi;
+    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
+        pi->scale(s);
 
     for (int bi=0; bi<(2<<BVL)-1; ++bi)
         mAABB[bi].scale(s);
@@ -312,6 +319,10 @@ void Mesh::translate(const Point &p)
     for (int bi=0; bi<(2<<BVL)-1; ++bi)
         mAABB[bi].add(p);
 
+    vector<Box>::iterator pi;
+    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
+        pi->add(p);
+
     updateTriangleData();
 }
 
@@ -321,8 +332,13 @@ void Mesh::alignLocalCorner()
     for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
         vi->sub(mAABB[0].min);
 
+    vector<Box>::iterator pi;
+    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
+        pi->sub(mAABB[0].min);
+
+    Point dl(mAABB[0].min);
     for (int bi=0; bi<(2<<BVL)-1; ++bi)
-        mAABB[bi].sub(Point(mAABB[0].min));
+        mAABB[bi].sub(dl);
 
     updateTriangleData();
 }
@@ -338,6 +354,10 @@ void Mesh::alignLocalCenter()
     vector<Point>::iterator vi;
     for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
         vi->sub(c1);
+
+    vector<Box>::iterator pi;
+    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
+        pi->sub(c1);
 
     for (int bi=0; bi<(2<<BVL)-1; ++bi)
         mAABB[bi].sub(c1);
@@ -426,6 +446,15 @@ void Mesh::reduce(int LoD)
 
 
 /** Drawing */
+void Mesh::drawVoxels(const Colour &col)
+{
+    vector<Box>::const_iterator pi;
+    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi) {
+        pi->draw(col, 0x30);
+    }
+
+}
+
 void Mesh::drawTriangles(const Colour &col, bool wire)
 {
     glPolygonMode(GL_FRONT_AND_BACK, wire? GL_LINE: GL_FILL);
@@ -466,7 +495,7 @@ void Mesh::drawAABB(const Colour &col)
 {
     /* Draw only the main box and the
      * leaves of the tree (last level of hierarchy */
-    //mAABB[0].draw(col, 0);
+    mAABB[0].draw(col, 0);
     for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) {
         mAABB[bi].draw(col, 0);
         mAABB[bi].draw(col, 0x80);
@@ -481,6 +510,7 @@ void Mesh::draw(const Colour &col, int x)
     glRotatef(localRot.y, 0, 1, 0);
     glRotatef(localRot.z, 0, 0, 1);
 
+    if (x & VOXELS) drawVoxels(Colour(0,0xFF,0));
     if (x & SOLID) drawTriangles(col, false);
     if (x & WIRE) drawTriangles(Colour(0,0,0), true);
     if (x & NORMALS) drawNormals(Colour(0xFF,0,0));
