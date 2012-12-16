@@ -252,7 +252,7 @@ public:
 
     static bool intersects (const Triangle &t, const Line &l)
     {
-        if (t.planeEquation(l.start) * t.planeEquation(l.end) > 0)
+        if (t.planeEquation(l.start) * t.planeEquation(l.end) >= 0)
             return false;
         else
         {
@@ -262,7 +262,7 @@ public:
             Point i = Point(l.start).add(dl.scale(tdl));
 
             /* Temporary vector containing the 6 vertices
-            * that form the 3 planes around the triangle */
+             * that form the 3 perpendicular planes around the triangle */
             Point N(t.getNormal());
             vector<Point> tempVec(6);
             tempVec[0] = tempVec[3] = t.v1();
@@ -276,7 +276,7 @@ public:
             float eq2 = Triangle(&tempVec, 1, 2, 4).planeEquation(i);
             float eq3 = Triangle(&tempVec, 2, 3, 5).planeEquation(i);
 
-            if ( (eq1>0 && eq2>0 && eq3>0) || (eq1<0 && eq2<0 && eq3<0) )
+            if ( (eq1>=0 && eq2>=0 && eq3>=0) || (eq1<=0 && eq2<=0 && eq3<=0) )
                 return true;
             else return false;
         }

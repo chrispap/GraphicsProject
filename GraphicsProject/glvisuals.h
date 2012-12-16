@@ -3,8 +3,6 @@
 
 #include "mesh.h"
 
-#define N 5
-
 enum ArrowDir {
     UP=0,
     DOWN,
@@ -15,6 +13,7 @@ enum ArrowDir {
 class GlVisuals
 {
     static const float PI;
+    static const int N;
     bool perspective_proj;
     Point globalRot;
     Point globalTranslation;
@@ -33,9 +32,9 @@ class GlVisuals
     void intersectScene();
     void drawAxes();
 
-    Mesh *armadillo[N];
-    Mesh *car[N];
-    Mesh *intersection[N];
+    vector<Mesh*> armadillo;
+    vector<Mesh*> car;
+    vector<Mesh*> intersection;
 
 public:
     GlVisuals();

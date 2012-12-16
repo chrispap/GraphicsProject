@@ -19,7 +19,7 @@
 
 using namespace std;
 
-#define BVL 3
+#define BVL 6
 
 enum Style {
     SOLID   = (1<<0),

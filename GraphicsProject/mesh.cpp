@@ -32,6 +32,7 @@ Mesh::Mesh(string filename, bool ccw,  bool vt):
     createTriangleLists();
     updateTriangleData();
     createBoundingBox();
+    alignLocalCenter();
     calculateVolume();
     printf ("Mesh loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
@@ -157,19 +158,22 @@ void Mesh::createBoundingBox()
 
 void Mesh::calculateVolume()
 {
-    const float dl = mAABB[0].getXSize()/100;
+    const float dl = mAABB[0].getXSize()/50;
     if (dl<0.01) return;
 
     unsigned long int voxelCount=0;
     unsigned long int voxelTotal=0;
-    Point ray_far = Point(458,789,665);//mAABB[0].max).scale(3);
-
+    int xi=0;
     for (float x=mAABB[0].min.x+dl/2; x<mAABB[0].max.x; x+=dl) {
+        printf("%c   %-2d%%", "|/-\\"[xi++%4], (int)(100*((x-mAABB[0].min.x)/mAABB[0].getXSize())));
+        fflush(stdout);
         for (float y=mAABB[0].min.y+dl/2; y<mAABB[0].max.y; y+=dl) {
             for (float z=mAABB[0].min.z+dl/2; z<mAABB[0].max.z; z+=dl)
             {
                 int intersectionsCount=0;
-                Line ray (Point(x,y,z), ray_far);
+                Point ray0(x,y,z);
+                Point rayFar(x*(x>0?200:-200),y*(y>0?200:-200),z*(z>0?200:-200));
+                Line ray (ray0, rayFar);
                 vector<Triangle>::const_iterator ti;
                 for (ti = mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
                     if ((Geom::mkcode(ray.start, ti->getBox()) & Geom::mkcode(ray.end, ti->getBox())) != 0) continue;
@@ -182,6 +186,7 @@ void Mesh::calculateVolume()
                 ++voxelTotal;
             }
         }
+        printf ("\b\b\b\b\b\b\b");
     }
 
     float boundingVol=0;
