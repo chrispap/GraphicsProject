@@ -19,7 +19,7 @@
 
 using namespace std;
 
-#define BVL         2
+#define BVL         3
 #define SOLID       (1<<0)
 #define WIRE        (1<<1)
 #define NORMALS     (1<<2)
@@ -30,10 +30,10 @@ class Mesh
 {
     vector<Point> mVertices;            // Vertex list
     vector<Triangle> mTriangles;        // Triangle list | contains indices to the Vertex list
-    vector<set<int> > mVertexTriangles;    // List of lists of the triangles that are connected to each vertex
-    Point localRot, localTranslation;    // Transformations
-    vector<list<int> > mAABBTriangles;    // Triangles of each hierarchy level
-    vector<Box> mAABB;                    // The bounding box hierarchy of the 3d model
+    vector<set<int> > mVertexTriangles; // List of lists of the triangles that are connected to each vertex
+    Point localRot, localTranslation;   // Transformations
+    vector<list<int> > mAABBTriangles;  // Triangles of each hierarchy level
+    vector<Box> mAABB;                  // The bounding box hierarchy of the 3d model
     float coverage;
 
     void createBoundingBox ();
@@ -59,7 +59,7 @@ public:
     void alignLocalCenter ();
     void setSize (float size);
     void translate (const Point &p);
-    void setLocalTranslation (const Point &p);
+    void setLocalTranslation (const Point &p) {localTranslation = p;}
     void reduce (int LoD=1);
     void draw (const Colour &col, int x);
 

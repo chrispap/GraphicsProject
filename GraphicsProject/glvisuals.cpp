@@ -31,20 +31,20 @@ GlVisuals::GlVisuals():
     milli0 (-1),
     t (0.0)
 {
-    loadModels();
+    loadScene();
 }
 
 GlVisuals::~GlVisuals()
 {
-    for (int i=0; i<5; ++i) {
+    for (int i=0; i<N; ++i) {
         delete armadillo[i];
         delete car[i];
         delete intersection[i];
     }
 }
 
-/** Manage models */
-void GlVisuals::loadModels()
+/** Manage scene */
+void GlVisuals::loadScene()
 {
     /* Load Model 1 */
     cout << " * Armadillo * " << endl;
@@ -53,7 +53,7 @@ void GlVisuals::loadModels()
     armadillo[0]->setSize(scene_size/2);
     printf("Mesh volume coverage:\t%4.2f%% \n", 100*armadillo[0]->getBoundingCoverage());
 
-    for (int i=1; i<5; ++i) {
+    for (int i=1; i<N; ++i) {
         armadillo[i] = new Mesh(*armadillo[i-1]);
         armadillo[i]->reduce();
     }
@@ -67,40 +67,48 @@ void GlVisuals::loadModels()
     car[0]->setSize(scene_size/3);
     printf("Mesh volume coverage:\t%4.2f%% \n", 100*car[0]->getBoundingCoverage());
 
-    for (int i=1; i<5; ++i) {
+    for (int i=1; i<N; ++i) {
         car[i] = new Mesh(*car[i-1]);
         car[i]->reduce();
     }
     cout << endl;
 
-    /* Create empty meshes */
-    for (int i=0; i<5; ++i)
-        intersection[i] = new Mesh("");
-
     /* Translate meshes */
     float zt = armadillo[0]->getBox().getZSize();
     float xt = armadillo[0]->getBox().getXSize()/2;
-    for (int i=0; i<5; ++i) {
-        armadillo[i] -> translate(Point( xt, 0, -zt*(2-i)));
-        car[i] -> translate(Point( -xt, 0, -zt*(2-i)));
+    for (int i=0; i<N; ++i) {
+        armadillo[i] -> translate(Point( xt, 0, -zt*((N/2)-i)));
+        car[i] -> translate(Point( -xt, 0, -zt*((N/2)-i)));
     }
 
+    /* Create empty meshes */
+    for (int i=0; i<N; ++i)
+        intersection[i] = new Mesh("");
 }
 
-void GlVisuals::intersectModels()
+void GlVisuals::drawScene()
+{
+    for (int i=0; i<N; ++i) {
+        car[i]         ->draw (Colour(0,0x66,0x66), SOLID | WIRE | (i==selObj?AABB:0));
+        armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | WIRE | (i==selObj?AABB:0));
+        intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
+    }
+}
+
+void GlVisuals::intersectScene()
 {
     cout << " * Intersections * " << endl;
 
     float t = armadillo[0]->getBox().getZSize();
 
     if (selObj>=0) {
-        for (int i=0; i<5; ++i) {
+        for (int i=0; i<N; ++i) {
             delete intersection[i];
             intersection[i] = new Mesh(*armadillo[selObj], *car[i], 1);
-            //intersection[i]-> setLocalTranslation(Point( 0,0, -t*(2-i)));
         }
     }
 }
+
 
 /** OpenGL Callback Methods */
 void GlVisuals::glInitialize()
@@ -113,7 +121,7 @@ void GlVisuals::glInitialize()
     glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseLight );
     glLightfv( GL_LIGHT0, GL_POSITION, lightPos );
 
-    //glShadeModel( GL_FLAT );
+    glShadeModel( GL_FLAT );
     glEnable(GL_NORMALIZE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc( GL_LEQUAL );
@@ -165,15 +173,9 @@ void GlVisuals::glPaint()
     glRotatef(globalRot.x, 1, 0, 0);
     glRotatef(globalRot.y, 0, 1, 0);
     glRotatef(globalRot.z, 0, 0, 1);
-
-    for (int i=0; i<1; ++i) {
-        car[i]         ->draw (Colour(0,0x66,0x66), WIRE | AABB );
-        armadillo[i]   ->draw (Colour(0x66,0x66,0), SOLID | WIRE | (i==selObj?AABB:0));
-        intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
-    }
+    drawScene();
 }
 
-/** Drawing Methods */
 void GlVisuals::drawAxes()
 {
     glBegin(GL_LINES);
@@ -193,10 +195,12 @@ void GlVisuals::drawAxes()
     glEnd();
 }
 
+
 /** UI Methods */
 void GlVisuals::setEllapsedMillis(int millis)
 {
-    if (milli0<0)    // In the first call calibrate.
+    // In the first call calibrate.
+    if (milli0<0)
         milli0 = millis;
     else
         t = ((millis-milli0)/1000.0);
@@ -209,8 +213,8 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y)
     if (up) selObj = -1;
     else {
         if (key>='x' && key <='z') selT = key;
-        else if (key>='1' && key <= '5') selObj = key-'0'-1;
-        else if (key=='i') intersectModels();
+        else if (key>='1' && key <= 'N') selObj = key-'0'-1;
+        else if (key=='i') intersectScene();
     }
 }
 

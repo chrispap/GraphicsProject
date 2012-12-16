@@ -3,6 +3,8 @@
 
 #include "mesh.h"
 
+#define N 5
+
 enum ArrowDir {
     UP=0,
     DOWN,
@@ -26,13 +28,14 @@ class GlVisuals
     int selObj;
     int selT;
 
-    void loadModels();
-    void intersectModels();
+    void loadScene();
+    void drawScene();
+    void intersectScene();
     void drawAxes();
 
-    Mesh *armadillo[5];
-    Mesh *car[5];
-    Mesh *intersection[5];
+    Mesh *armadillo[N];
+    Mesh *car[N];
+    Mesh *intersection[N];
 
 public:
     GlVisuals();

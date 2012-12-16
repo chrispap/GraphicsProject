@@ -112,7 +112,7 @@ struct Box
             Point(max.x, max.y, max.z), //6
             Point(max.x, min.y, max.z), //7
         };
-
+        
         glPolygonMode(GL_FRONT_AND_BACK, a?GL_FILL: GL_LINE);
         glBegin(GL_QUADS);
         if (a) glColor4ub(col.r, col.g, col.b, a);
@@ -148,25 +148,6 @@ struct Box
         glVertex3fv(p[5].data);
         glVertex3fv(p[4].data);
         glEnd();
-
-        /*
-        int i;
-
-        glBegin(GL_LINE_LOOP);
-        for (i=0; i<4; ++i) glVertex3fv(p[i].data);
-        glEnd();
-
-        glBegin(GL_LINE_LOOP);
-        for (i=4; i<8; ++i) glVertex3fv(p[i].data);
-        glEnd();
-
-        glBegin(GL_LINES);
-        for (i=0; i<4; ++i) {
-            glVertex3fv(p[i].data);
-            glVertex3fv(p[i+4].data);
-        }
-        glEnd();
-        */
     }
 
     Box &add(const Point &v)
@@ -194,15 +175,11 @@ struct Box
 
 struct Triangle
 {
-    union {
-        struct { int vi1, vi2, vi3;};
-        int v[3];
-    };                        // Indices to the above vector
-    vector<Point> *vecList;    // Pointer to the vector containing the mVertices
-
-    float A, B, C, D;        // Plane equation coefficients
-    Box box;                // Bounding box of the triangle
-    bool deleted;            // Flag indicating that a triangle should be considered deleted
+    union { struct { int vi1, vi2, vi3;}; int v[3];}; // Indices to the above vector
+    vector<Point> *vecList;                          // Pointer to the vector containing the mVertices
+    float A, B, C, D;                               // Plane equation coefficients
+    Box box;                                       // Bounding box of the triangle
+    bool deleted;                                 // Flag indicating that a triangle should be considered deleted
 
     Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3):
             vi1(_v1),

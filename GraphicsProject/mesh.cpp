@@ -19,7 +19,7 @@
 #include <GL/glu.h>
 #endif
 
-/* Constructrors */
+/** Constructrors */
 Mesh::Mesh(string filename, bool ccw,  bool vt):
     localRot(0,0,0),
     localTranslation(0,0,0),
@@ -94,8 +94,12 @@ void Mesh::createBoundingBox()
     for (int ti=0; ti < mTriangles.size(); ++ti)
         mAABBTriangles[0].push_back(ti);
 
-    for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {         // For each level of hierarchy...
-        for (int div=0; div < (1<<bvlevel); ++div) {     // ...for each node of this level, split the node to half.
+    /* For each level of hierarchy,
+     * for each node of this level,
+     * split the node to half.
+     */
+    for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {
+        for (int div=0; div < (1<<bvlevel); ++div) {
 
             int parent = (1<<bvlevel) -1+div;
             int ch1 = 2*parent+1;
@@ -281,7 +285,8 @@ void Mesh::findCollisions(const Mesh &m1, const Mesh &m2, vector<Point> &vertice
     }
 }
 
-/* Editing */
+
+/** Editing */
 void Mesh::setSize(float size)
 {
     float s = size / (max(mAABB[0].max.x-mAABB[0].min.x,
@@ -343,9 +348,9 @@ void Mesh::alignLocalCenter()
 void Mesh::reduce(int LoD)
 {
     clock_t t = clock();
-    set<int> procList;        // List with triangles to process
-    set<int>::iterator pli;    // Iterator to procList
-    int ti, tx;                // Indices of triangles to delete
+    set<int> procList;      // List with triangles to process
+    set<int>::iterator pli; // Iterator to procList
+    int ti, tx;             // Indices of triangles to delete
 
     /* Populate triangle list with all the triangles */
     pli = procList.begin();
@@ -364,7 +369,7 @@ void Mesh::reduce(int LoD)
         int vx = mTriangles[ti].vi2;                // Vertex we discard of the collapsing edge
         set<int> &vkList = mVertexTriangles[vk];    // Reference to vertex's Vk triangle list
         set<int> &vxList = mVertexTriangles[vx];    // Reference to vertex's Vx triangle list
-        set<int>::iterator vkLi, vxLi;                // Iterators for vertex triangle lists
+        set<int>::iterator vkLi, vxLi;              // Iterators for vertex triangle lists
 
         /*2. Find the second triangle, apart ti, with edge [vk,vx]=tx */
         vxLi = vxList.begin();
@@ -419,13 +424,8 @@ void Mesh::reduce(int LoD)
     printf ("Mesh reduction took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
-/* Transformations */
-void Mesh::setLocalTranslation (const Point &p)
-{
-    localTranslation = p;
-}
 
-/* Drawing */
+/** Drawing */
 void Mesh::drawTriangles(const Colour &col, bool wire)
 {
     glPolygonMode(GL_FRONT_AND_BACK, wire? GL_LINE: GL_FILL);
