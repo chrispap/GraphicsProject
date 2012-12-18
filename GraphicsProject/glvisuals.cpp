@@ -53,7 +53,7 @@ void GlVisuals::loadScene()
     /* Load Model 1 */
     cout << " * Armadillo * " << endl;
     armadillo[0] = new Mesh("Model_1.obj", 0, 0);
-    armadillo[0]->setSize(scene_size/2);
+    armadillo[0]->setMaxSize(scene_size/2);
     for (int blevel=0; blevel<=BVL; blevel++)
         printf("Mesh volume coverage Level %d:\t%4.2f%% \n", blevel, 100*armadillo[0]->geCoverage(blevel));
 
@@ -67,7 +67,7 @@ void GlVisuals::loadScene()
     /* Load Model 2 */
     cout << " * Car * " << endl;
     car[0] = new Mesh("Model_2.obj", 1, 0);
-    car[0]->setSize(scene_size/3);
+    car[0]->setMaxSize(scene_size/3);
     for (int blevel=0; blevel<=BVL; blevel++)
         printf("Mesh volume coverage Level %d:\t%4.2f%% \n", blevel, 100*car[0]->geCoverage(blevel));
 
@@ -212,11 +212,11 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
 {
     key = tolower(key);
 
-	if (up) {}//selObj = -1;
+    if (up) {}//selObj = -1;
     else {
         if (key>='x' && key <='z') selT = key;
         else if (key>='1' && key <= ('0'+N)) selObj = key-'0'-1;
-		else if (key == '0') selObj = -1;
+        else if (key == '0') selObj = -1;
         else if (key=='i') intersectScene();
     }
 }
@@ -257,20 +257,6 @@ void GlVisuals::mouseMoved(int x, int y, int modif)
         globalRot.y += (dx>>1);
         globalRot.x += (dy>>1);
     }
-    //}
-    //else {
-        /*Dont rotate
-        Point lRot(armadillo[selObj]->getLocalRotation());
-        if (!modif) {
-            lRot.y += (dx>>1);
-            lRot.z += (dy>>1);
-        } else {
-            lRot.y += (dx>>1);
-            lRot.x += (dy>>1);
-        }
-        armadillo[selObj]->setLocalRotation(lRot);
-        */
-    //}
 
     mouselastX = x;
     mouselastY = y;
@@ -288,7 +274,7 @@ void GlVisuals::mouseWheel(int dir, int modif)
         Point t(0,0,0);
         float &e = t.y;
         e += scene_size/20 * (dir?-1:+1);
-        armadillo[selObj]->setLocalTranslation(t);
+        armadillo[selObj]->translate(t);
     }
 
 }

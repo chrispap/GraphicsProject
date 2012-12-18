@@ -3,13 +3,6 @@
 
 #include "mesh.h"
 
-enum ArrowDir {
-    UP=0,
-    DOWN,
-    RIGHT,
-    LEFT
-};
-
 class GlVisuals
 {
     static const float PI;
@@ -54,6 +47,13 @@ public:
     void mousePressed (int x, int y, int modif=0);
     void mouseMoved (int x, int y, int modif=0);
     void mouseWheel (int dir=0, int modif=0);
+};
+
+enum ArrowDir {
+    UP=0,
+    DOWN,
+    RIGHT,
+    LEFT
 };
 
 #endif

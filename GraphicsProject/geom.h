@@ -58,20 +58,40 @@ struct Box
         min = Point(std::min(v1.x, std::min(v2.x, v3.x)),
                     std::min(v1.y, std::min(v2.y, v3.y)),
                     std::min(v1.z, std::min(v2.z, v3.z)));
+
         max = Point(std::max(v1.x, std::max(v2.x, v3.x)),
                     std::max(v1.y, std::max(v2.y, v3.y)),
                     std::max(v1.z, std::max(v2.z, v3.z)));
     }
 
+    static void saturate (Box &box, Point &min, Point &max)
+    {
+        if (min.x<box.min.x) min.x = box.min.x;
+        if (min.y<box.min.y) min.y = box.min.y;
+        if (min.z<box.min.z) min.z = box.min.z;
+        if (max.x>box.max.x) max.x = box.max.x;
+        if (max.y>box.max.y) max.y = box.max.y;
+        if (max.z>box.max.z) max.z = box.max.z;
+    }
+
     float getXSize() const { return max.x - min.x;}
+
     float getYSize() const { return max.y - min.y;}
+
     float getZSize() const { return max.z - min.z;}
+
+    float getMinSize() const { return std::min(getXSize(),std::min(getYSize(),getZSize()));}
+
+    float getMaxSize() const { return std::max(getXSize(),std::max(getYSize(),getZSize()));}
+
     float getVolume() const { return (max.x - min.x)*(max.y - min.y)*(max.z - min.z); }
 
     Box &add(const Point &v) { min.add(v); max.add(v); return *this; }
+
     Box &sub(const Point &v){min.sub(v); max.sub(v);return *this; }
+
     Box &scale(const float s){min.scale(s); max.scale(s);return *this;}
- 
+
     void draw(const Colour &col, unsigned char a=0) const
     {
         Point p[8] = {
@@ -151,12 +171,19 @@ struct Triangle
     }
 
     const Point &v1() const { return (*vecList)[vi1];}
+
     const Point &v2() const { return (*vecList)[vi2];}
+
     const Point &v3() const { return (*vecList)[vi3];}
+
     const Box &getBox() const { return box;}
+
     const Point getNormal() const { return Point(A,B,C);}
+
     const Point getNormal2() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3).add(Point(A,B,C));}
+
     const Point getCenter() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3);}
+
     float planeEquation(const Point &r) const { return A*r.x + B*r.y + C*r.z + D;}
 };
 
