@@ -30,10 +30,15 @@ struct Point {
     };
 
     Point(){ }
+
     Point(float _x, float _y, float _z): x(_x), y(_y), z(_z) { }
+
     void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
+
     Point &add(const Point &v) { x += v.x; y += v.y; z += v.z; return *this;}
+
     Point &sub(const Point &v) {x -= v.x; y -= v.y; z -= v.z; return *this; }
+
     Point &scale(const float s) { x *= s; y *= s; z *= s; return *this; }
 };
 
@@ -42,17 +47,20 @@ struct Line
     Point start, end;
 
     Line() {}
+
     Line (const Point &_start, const Point &_end): start(_start), end(_end) {}
+
     ~Line(void) {}
 };
 
 struct Box
 {
-    Point min;
-    Point max;
+    Point min, max;
 
     Box() {}
+
     Box(const Point &vmin, const Point &vmax): min(vmin), max(vmax) {}
+
     Box(const Point &v1, const Point &v2, const Point &v3)
     {
         min = Point(std::min(v1.x, std::min(v2.x, v3.x)),
@@ -94,16 +102,17 @@ struct Box
 
     void draw(const Colour &col, unsigned char a=0) const
     {
-        Point p[8] = {
-            Point(min.x, min.y, min.z), //0
-            Point(min.x, max.y, min.z), //1
-            Point(min.x, max.y, max.z), //2
-            Point(min.x, min.y, max.z), //3
-            Point(max.x, min.y, min.z), //4
-            Point(max.x, max.y, min.z), //5
-            Point(max.x, max.y, max.z), //6
-            Point(max.x, min.y, max.z), //7
-        };
+        static Point p[8];
+        Point *v = p;
+        *v++ = Point(min.x, min.y, min.z), //0
+        *v++ = Point(min.x, max.y, min.z), //1
+        *v++ = Point(min.x, max.y, max.z), //2
+        *v++ = Point(min.x, min.y, max.z), //3
+        *v++ = Point(max.x, min.y, min.z), //4
+        *v++ = Point(max.x, max.y, min.z), //5
+        *v++ = Point(max.x, max.y, max.z), //6
+        *v++ = Point(max.x, min.y, max.z), //7
+
 
         glPolygonMode(GL_FRONT_AND_BACK, a?GL_FILL: GL_LINE);
         glBegin(GL_QUADS);
@@ -150,6 +159,8 @@ struct Triangle
     float A, B, C, D;                               // Plane equation coefficients
     Box box;                                       // Bounding box of the triangle
     bool deleted;                                 // Flag indicating that a triangle should be considered deleted
+
+    Triangle () {}
 
     Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3):
             vi1(_v1),
@@ -204,7 +215,7 @@ public:
                 v1.z * v2.z;
     }
 
-    static char mkcode (const Point &v, const Box b)
+    static char mkcode (const Point &v, const Box &b)
     {
         Point c1 = b.min;
         Point c2 = b.max;
@@ -224,9 +235,51 @@ public:
                 (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
     }
 
+    static bool intersects (const Box &b, const Line &l)
+    {
+        static char c1, c2;
+        c1 = mkcode(l.start, b);
+        c2 = mkcode(l.end, b);
+
+        if (!(c1 | c2)) return true;
+        if ( (c1 & c2)) return false;
+
+        /* Trim the line segment */
+        static vector<Point> Rvecs(3);
+        static Triangle R = Triangle(&Rvecs, 0,1,2);
+        static Point dl, i;
+        static float tdl;
+        static char bitNo, dim;
+        static bool min_max;
+
+        bitNo = 0;
+        while ( ( (c1^c2) & (1<<bitNo) ) == 0) {     // Locate the first different bit
+            ++bitNo;
+        }
+        printf("0x%X ", (int)bitNo);
+        fflush(stdout);
+
+        dim = 2-bitNo/2;                    // Determine the dimension [X|Y|Z]
+        min_max = bitNo%2;                  // [XYZ]min OR [XYZ]max
+        Rvecs[0] = (min_max? b.min: b.max);
+        Rvecs[1] = Rvecs[0];
+        Rvecs[2] = Rvecs[0];
+        //Rvecs[1].data[(dim+1)%3]+=10;
+        //Rvecs[2].data[(dim+2)%3]+=10;
+
+        /* Find the intersection point */
+        dl = Point(l.end).sub(l.start);
+        tdl = -R.planeEquation(l.start)/(R.planeEquation(dl)- R.D);
+        i = Point(l.start).add(dl.scale(tdl));
+
+        return ( R.planeEquation(l.start) > 0 )?
+            intersects( b, Line(i, l.end)) :
+            intersects( b, Line(l.start, i));
+    }
+
     static bool intersects (const Triangle &t, const Line &l)
     {
-        if (t.planeEquation(l.start) * t.planeEquation(l.end) >= 0)
+        if (t.planeEquation(l.start) * t.planeEquation(l.end) > 0)
             return false;
         else
         {
@@ -245,14 +298,11 @@ public:
             tempVec[3].add(N);
             tempVec[4].add(N);
             tempVec[5].add(N);
-
             float eq1 = Triangle(&tempVec, 0, 1, 3).planeEquation(i);
             float eq2 = Triangle(&tempVec, 1, 2, 4).planeEquation(i);
             float eq3 = Triangle(&tempVec, 2, 3, 5).planeEquation(i);
 
-            if ( (eq1>=0 && eq2>=0 && eq3>=0) || (eq1<=0 && eq2<=0 && eq3<=0) )
-                return true;
-            else return false;
+            return ( (eq1>0 && eq2>0 && eq3>0) || (eq1<0 && eq2<0 && eq3<0) )? true : false;
         }
     }
 

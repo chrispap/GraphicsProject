@@ -169,7 +169,7 @@ void Mesh::calculateVolume()
     unsigned long int voxelTotal=0;
     int xi=0;
     for (float x=mAABB[0].min.x+dl/2; x<mAABB[0].max.x; x+=dl) {
-        printf("%c   %-2d%%", "|/-\\"[xi++%4], (int)(100*((x-mAABB[0].min.x)/mAABB[0].getXSize())));fflush(stdout);
+        printf("[%c] [%-2d%%]", "|/-\\"[xi++%4], (int)(100*((x-mAABB[0].min.x)/mAABB[0].getXSize())));fflush(stdout);
         for (float y=mAABB[0].min.y+dl/2; y<mAABB[0].max.y; y+=dl) {
             for (float z=mAABB[0].min.z+dl/2; z<mAABB[0].max.z; z+=dl)
             {
@@ -179,10 +179,10 @@ void Mesh::calculateVolume()
                 Line ray (ray0, rayFar);
                 list<int>::const_iterator ti;
                 for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) {
-                    if ((Geom::mkcode(ray.start, mAABB[bi]) & Geom::mkcode(ray.end, mAABB[bi])) != 0) continue;
+                    if (!Geom::intersects(mAABB[bi], ray)) continue;
                     for (ti = mAABBTriangles[bi].begin(); ti!=mAABBTriangles[bi].end(); ++ti) {
                         Triangle &t = mTriangles[*ti];
-                        if ((Geom::mkcode(ray.start, t.getBox()) & Geom::mkcode(ray.end, t.getBox())) != 0) continue;
+                        if ((Geom::mkcode(ray.start, t.getBox()) & Geom::mkcode(ray.end, t.getBox()))) continue;
                         if ( Geom::intersects(t, ray)) ++intersectionsCount;
                     }
                 }
@@ -195,7 +195,7 @@ void Mesh::calculateVolume()
         }
         printf ("\r");
     }
-    printf("         \r");
+    printf("             \r");
 
     /* Calculate the coverage for every level */
     float cover = ((float)voxelCount)/voxelTotal;
