@@ -33,6 +33,7 @@ class GlVisuals
     /* Methods */
     void loadScene();
     void drawScene();
+    void resetScene();
 	void duplicateModel(bool shift);
     void intersectScene();
     void drawAxes();

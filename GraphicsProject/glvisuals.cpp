@@ -59,6 +59,21 @@ void GlVisuals::loadScene()
     intersectScene();
 }
 
+void GlVisuals::resetScene() 
+{
+    for (int i=1; i<armadillo.size(); ++i)
+        delete armadillo[i];
+    armadillo.resize(1);
+
+    for (int i=1; i<car.size(); ++i)
+        delete car[i];
+    car.resize(1);
+
+    for (int i=0; i<intersection.size(); ++i)
+        delete intersection[i];
+    intersection.resize(0);
+}
+
 void GlVisuals::intersectScene()
 {
     for (int i=0; i<intersection.size(); ++i)
@@ -85,6 +100,7 @@ void GlVisuals::duplicateModel(bool shift)
 	model.back()->move(mov);
 	model.back()->reduce();
 
+    selObj = model.size()-1;
 	intersectScene();
 }
 
@@ -214,6 +230,7 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
         else if (key>='1' && key <= '9') selObj = key-'0'-1;
         else if (key == '0') selObj = -1;
         else if (key == 'd') duplicateModel(shift);
+        else if (key=='r') resetScene();
         else if (key=='i') intersectScene();
         else if (key=='s') _style = SOLID;
         else if (key=='w') _style = WIRE;
@@ -247,7 +264,8 @@ void GlVisuals::arrowEvent (int dir, int modif)
         else if (!shift && selObj<armadillo.size())
             armadillo[selObj]->move(t);
 
-        //it slows things :( intersectScene();
+        //it slows things :( 
+        intersectScene();
     }
 }
 
