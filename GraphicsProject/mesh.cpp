@@ -33,10 +33,12 @@ Mesh::Mesh(string filename, bool ccw,  bool vt):
     createBoundingBoxHierarchy();
     centerAlign();
     calculateVolume();
+    for (int blevel=0; blevel<=BVL; blevel++)
+        printf("Mesh coverage level:\t%d: %4.2f%% \n", blevel, 100*coverage[blevel]);
     printf ("Mesh loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
-Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
+Mesh::Mesh( Mesh &m1,  Mesh &m2, bool both):
     mRot(0,0,0),
     mPos(0,0,0),
     mAABB(BVL_SIZE(BVL)),
@@ -50,14 +52,14 @@ Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
     printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
-Mesh::Mesh(const Mesh &original):
-    mVertices (original.mVertices),
-    mTriangles (original.mTriangles),
-    mVertexTriangles (original.mVertexTriangles),
-    mAABBTriangles (original.mAABBTriangles),
-    mAABB (original.mAABB),
-    mRot (original.mRot),
-    mPos (original.mPos)
+Mesh::Mesh(const Mesh &copyfrom):
+    mVertices (copyfrom.mVertices),
+    mTriangles (copyfrom.mTriangles),
+    mVertexTriangles (copyfrom.mVertexTriangles),
+    mAABBTriangles (copyfrom.mAABBTriangles),
+    mAABB (copyfrom.mAABB),
+    mRot (copyfrom.mRot),
+    mPos (copyfrom.mPos)
 {
     vector<Triangle>::iterator ti;
     for (ti=mTriangles.begin(); ti!= mTriangles.end(); ++ti)
@@ -110,7 +112,9 @@ void Mesh::createBoundingBoxHierarchy()
     /* Levels of Hierrarchy */
 
     /*Construct a triangle list with all the triangles */
-    for (int ti=0; ti < mTriangles.size(); ++ti) mAABBTriangles[0].push_back(ti);
+    mAABBTriangles[0].clear();
+    for (int ti=0; ti < mTriangles.size(); ++ti)
+        mAABBTriangles[0].push_back(ti);
 
     /* For each level of hierarchy,
      * for each node of this level,
@@ -118,10 +122,11 @@ void Mesh::createBoundingBoxHierarchy()
      */
     for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {
         for (int div=0; div < (1<<bvlevel); ++div) {
-
             int parent = (1<<bvlevel) -1+div;
             int ch1 = 2*parent+1;
             int ch2 = 2*parent+2;
+            mAABBTriangles[ch1].clear();
+            mAABBTriangles[ch2].clear();
             Point &min = mAABB[parent].min;
             Point &max = mAABB[parent].max;
             float limX = (max.x + min.x)/2;
@@ -201,7 +206,6 @@ void Mesh::calculateVolume()
         printf ("\r");
     }
     printf("             \r");
-    printf("Voxel total: %ld", voxelTotal);
 
     /* Calculate the coverage for every level */
     float cover = ((float)voxelCount)/voxelTotal;
@@ -245,51 +249,73 @@ void Mesh::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector
     fclose(objfile);
 }
 
-void Mesh::findCollisions(const Mesh &m1, const Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both)
+void Mesh::findCollisions( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both)
 {
-    if (!Geom::intersects (m1.getBox(), m2.getBox())) return;
+    if (!Geom::intersects (m1.getBox(), m2.getBox())) return; // trivial check
 
     //TODO Eliminate vertex repetition
     vector<Triangle> const &m1t = m1.mTriangles;
     vector<Triangle> const &m2t = m2.mTriangles;
 
-    int mti1, mti2, count=0;
-    bool mt1Collided;            // Flag indicating the collision of a triangle in the outer loop
-    vector<char> mt2Collided;    // Keep track of allready collided triangles
-    if (both)
-        mt2Collided.resize(m2t.size(), 0);
+    unsigned int count=0;       // count intersecting triangles
+    unsigned int m1ti;          // index to model's 1 triangles
+    bool m1tCollided;           // Flag indicating the collision of a triangle in the outer loop
+    vector<char> m2tCollided;   // Keep track of allready collided triangles
+    if (both)                   // We need it only if we are looking for triangles from both models
+        m2tCollided.resize(m2t.size(), 0);
 
-    vector<Triangle>::const_iterator mt1, mt2;
-    for (mti1=0; mti1<m1t.size(); ++mti1) {
-        mt1Collided=false;
-        for (mti2=0; mti2<m2t.size(); ++mti2) {
-            if (mt1Collided && mt2Collided[mti2]) continue;
-            if (!Geom::intersects(m1t[mti1], m2t[mti2])) continue;
+    vector<Point>::iterator vi;
+    Point tr1 = m1.mPos;
+    Point tr2 = m2.mPos;
+    for (vi=m1.mVertices.begin(); vi!= m1.mVertices.end(); ++vi) vi->add(tr1);
+    for (vi=m2.mVertices.begin(); vi!= m2.mVertices.end(); ++vi) vi->add(tr2);
+    m1.updateTriangleData();
+    m1.createBoundingBoxHierarchy();
+    m2.updateTriangleData();
+    m2.createBoundingBoxHierarchy();
 
-            /* Add the colliding triangle of the first model. */
-            if (!mt1Collided) {
-                vertices.push_back(m1t[mti1].v1());
-                vertices.push_back(m1t[mti1].v2());
-                vertices.push_back(m1t[mti1].v3());
-                triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
-                count++;
-                mt1Collided=true;
+    for (m1ti=0; m1ti<m1t.size(); ++m1ti) { // for all triangles of model 1
+        m1tCollided=false;
+
+        for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {  // for all bounding boxes of model 2
+            if (!Geom::intersects(m2.mAABB[bi], m1t[m1ti].box)) continue;
+
+            list<int>::const_iterator m2ti;
+            for (m2ti = m2.mAABBTriangles[bi].begin(); m2ti!=m2.mAABBTriangles[bi].end(); ++m2ti) {
+                if (m1tCollided && m2tCollided[*m2ti]) continue;
+                if (!Geom::intersects(m1t[m1ti], m2t[*m2ti])) continue;
+
+                /* Add the colliding triangle of the first model. */
+                if (!m1tCollided) {
+                    vertices.push_back(m1t[m1ti].v1());
+                    vertices.push_back(m1t[m1ti].v2());
+                    vertices.push_back(m1t[m1ti].v3());
+                    triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
+                    count++;
+                    m1tCollided=true;
+                }
+                /* Add the colliding triangle of the second model if this is requested, otherwise break. */
+                if (!both)
+                    break;
+                else if (!m2tCollided[*m2ti]) {
+                    vertices.push_back(m2t[*m2ti].v1());
+                    vertices.push_back(m2t[*m2ti].v2());
+                    vertices.push_back(m2t[*m2ti].v3());
+                    triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
+                    count++;
+                    m2tCollided[*m2ti]=true;
+                }
             }
-
-            /* Add the colliding triangle of the second model if this is requested, otherwise break. */
-            if (!both)
-                break;
-            else if (!mt2Collided[mti2]) {
-                vertices.push_back(m2t[mti2].v1());
-                vertices.push_back(m2t[mti2].v2());
-                vertices.push_back(m2t[mti2].v3());
-                triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
-                count++;
-                mt2Collided[mti2]=true;
-            }
-
         }
     }
+
+    for (vi=m1.mVertices.begin(); vi!= m1.mVertices.end(); ++vi) vi->sub(tr1);
+    for (vi=m2.mVertices.begin(); vi!= m2.mVertices.end(); ++vi) vi->sub(tr2);
+    m1.updateTriangleData();
+    m1.createBoundingBoxHierarchy();
+    m2.updateTriangleData();
+    m2.createBoundingBoxHierarchy();
+
 }
 
 
@@ -427,6 +453,7 @@ void Mesh::reduce(int LoD)
 
     createTriangleLists();
     updateTriangleData();
+    createBoundingBoxHierarchy();
     printf ("Mesh reduction took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
@@ -477,14 +504,17 @@ void Mesh::drawNormals(const Colour &col)
     return;
 }
 
-void Mesh::drawAABB(const Colour &col)
+void Mesh::drawAABB(const Colour &col, bool skipHier)
 {
     /* Draw only the main box and the
      * leaves of the tree (last level of hierarchy */
     mAABB[0].draw(col, 0);
-    for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
-        mAABB[bi].draw(col, 0);
-        mAABB[bi].draw(col, 0x80);
+
+    if (!skipHier) {
+        for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
+            mAABB[bi].draw(col, 0);
+            mAABB[bi].draw(col, 0x50);
+        }
     }
 }
 
@@ -499,7 +529,7 @@ void Mesh::draw(const Colour &col, int x)
     if (x & SOLID) drawTriangles(col, false);
     if (x & WIRE) drawTriangles(Colour(0,0,0), true);
     if (x & NORMALS) drawNormals(Colour(0xFF,0,0));
-    if (x & AABB) drawAABB(Colour(0xA5, 0x2A, 0x2A));
+    if (x & AABB) drawAABB(Colour(0xA5, 0x2A, 0x2A), !(x&AABBH));
     if (x & TBOXES) drawTriangleBoxes(Colour(0xFF,0,0));
     glPopMatrix();
 }

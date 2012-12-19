@@ -18,13 +18,7 @@
 
 using namespace std;
 
-const float GlVisuals::PI=3.14159;
-const int GlVisuals::N=5;
-
 GlVisuals::GlVisuals():
-    armadillo(N),
-    car(N),
-    intersection(N),
     globalTranslation (0,0,0),
     globalRot (30,180,0),
     perspective_proj (1),
@@ -34,82 +28,78 @@ GlVisuals::GlVisuals():
     selT ('z'),
     milli0 (-1),
     t (0.0),
-    style (SOLID | VOXELS)
+    style (SOLID)
 {
     loadScene();
 }
 
 GlVisuals::~GlVisuals()
 {
-    for (int i=0; i<N; ++i) {
+    for (int i=0; i<armadillo.size(); ++i)
         delete armadillo[i];
+
+    for (int i=0; i<car.size(); ++i)
         delete car[i];
+
+    for (int i=0; i<intersection.size(); ++i)
         delete intersection[i];
-    }
 }
 
 /** Manage scene */
 void GlVisuals::loadScene()
 {
-    /* Load Model 1 */
-    cout << " * Armadillo * " << endl;
-    armadillo[0] = new Mesh("Model_1.obj", 0, 0);
+
+    /****************
+     * Load Model 1 *
+     ****************/
+    puts("\n ==== Armadillo ====");
+    armadillo.push_back (new Mesh("Model_1.obj", 0, 0));
     armadillo[0]->setMaxSize(scene_size/2);
-    for (int blevel=0; blevel<=BVL; blevel++)
-        printf("Mesh volume coverage Level %d:\t%4.2f%% \n", blevel, 100*armadillo[0]->geCoverage(blevel));
 
-    for (int i=1; i<N; ++i) {
-        armadillo[i] = new Mesh(*armadillo[i-1]);
-        armadillo[i]->reduce();
-    }
-
-    cout << endl;
-
-    /* Load Model 2 */
-    cout << " * Car * " << endl;
-    car[0] = new Mesh("Model_2.obj", 1, 0);
+    /****************
+     * Load Model 2 *
+     ****************/
+    puts("\n ==== Car ====");
+    car.push_back (new Mesh("Model_2.obj", 1, 0));
     car[0]->setMaxSize(scene_size/3);
-    for (int blevel=0; blevel<=BVL; blevel++)
-        printf("Mesh volume coverage Level %d:\t%4.2f%% \n", blevel, 100*car[0]->geCoverage(blevel));
 
-    for (int i=1; i<N; ++i) {
-        car[i] = new Mesh(*car[i-1]);
-        car[i]->reduce();
-    }
-    cout << endl;
-
-    /* Translate meshes */
-    float zt = armadillo[0]->getBox().getZSize();
-    float xt = armadillo[0]->getBox().getXSize()/2;
-    for (int i=0; i<N; ++i) {
-        armadillo[i] -> translate(Point( xt, 0, -zt*((N/2)-i)));
-        car[i] -> translate(Point( -xt, 0, -zt*((N/2)-i)));
-    }
-
-    /* Create empty meshes */
-    for (int i=0; i<N; ++i)
-        intersection[i] = new Mesh("");
-}
-
-void GlVisuals::drawScene()
-{
-    Point t;
-    for (int i=0; i<N; ++i) {
-        car[i]->draw (Colour(0,0x66,0x66), style | ((i==selObj)?AABB:0));
-        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==selObj)?AABB:0));
-        intersection[i]->draw (Colour(0x66,0,0x66), style  | ((i==selObj)?AABB:0));
-    }
 }
 
 void GlVisuals::intersectScene()
 {
-    cout << " * Intersections * " << endl;
-    if (selObj>=0) {
-        for (int i=0; i<N; ++i) {
+    if (selObj<0 || (selObj+1)>armadillo.size())
+        cout << "Select a valid object first" << endl;
+    else {
+        cout << " * Intersections * " << endl;
+
+        for (int i=0; i<intersection.size(); ++i)
             delete intersection[i];
-            intersection[i] = new Mesh(*armadillo[selObj], *car[i], 1);
+
+        intersection.clear();
+
+        for (int i=0; i<car.size(); ++i) {
+            intersection.push_back (new Mesh(*armadillo[selObj], *car[i], 1));
         }
+
+        for (int i=0; i<armadillo.size(); ++i) {
+            if (i==selObj) continue;
+            intersection.push_back (new Mesh(*armadillo[selObj], *armadillo[i], 1));
+        }
+
     }
+
+}
+
+void GlVisuals::drawScene()
+{
+    for (int i=0; i<armadillo.size(); ++i)
+        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==selObj)?AABB:0));
+
+    for (int i=0; i<car.size(); ++i)
+        car[i]->draw (Colour(0,0x66,0x66), style | ((i==selObj)?AABB:0));
+
+    for (int i=0; i<intersection.size(); ++i)
+        intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
 }
 
 
@@ -176,6 +166,7 @@ void GlVisuals::glPaint()
     glRotatef(globalRot.x, 1, 0, 0);
     glRotatef(globalRot.y, 0, 1, 0);
     glRotatef(globalRot.z, 0, 0, 1);
+    drawAxes();
     drawScene();
 }
 
@@ -214,15 +205,18 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
     key = tolower(key);
     int _style=0;
 
-    if (up) {}//selObj = -1;
+    if (up) {
+        //selObj = -1;
+    }
     else {
         if (key>='x' && key <='z') selT = key;
-        else if (key>='1' && key <= ('0'+N)) selObj = key-'0'-1;
+        else if (key>='1' && key <= '9') selObj = key-'0'-1;
         else if (key == '0') selObj = -1;
         else if (key=='i') intersectScene();
         else if (key=='s') _style = SOLID;
         else if (key=='w') _style = WIRE;
         else if (key=='v') _style = VOXELS;
+        else if (key=='b') _style = AABBH;
 
         if (_style) style = (style&_style)? (style&(~_style)): style|_style;
     }
@@ -231,18 +225,25 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
 
 void GlVisuals::arrowEvent (int dir, int modif)
 {
+    bool ctrl  =  modif & 0x01;
+    bool shift =  modif & 0x02;
+
     if (selObj<0)
     {
         Point &t = globalTranslation;
-        float &e = modif? t.z : dir&2? t.x : t.y;
+        float &e = ctrl? t.z : dir&2? t.x : t.y;
         e = dir&1? e - scene_size/20: e + scene_size/20;
     }
     else
     {
         Point t(0,0,0);
-        float &e = modif? t.y : dir&2? t.z : t.x;
+        float &e = ctrl? t.y : dir&2? t.z : t.x;
         e = dir&1? e - scene_size/20: e + scene_size/20;
-        armadillo[selObj]->translate(t);
+
+        if (shift && selObj<car.size())
+            car[selObj]->move(t);
+        else if (!shift && selObj<armadillo.size())
+            armadillo[selObj]->move(t);
     }
 }
 
@@ -272,17 +273,9 @@ void GlVisuals::mouseMoved(int x, int y, int modif)
 
 void GlVisuals::mouseWheel(int dir, int modif)
 {
-    if (selObj < 0)
-    {
-        float &e = globalTranslation.z;
-        e += scene_size/20 * (dir?-1:+1);
-    }
-    else
-    {
-        Point t(0,0,0);
-        float &e = t.y;
-        e += scene_size/20 * (dir?-1:+1);
-        armadillo[selObj]->translate(t);
-    }
+    bool ctrl  =  modif & 0x01;
+    bool shift =  modif & 0x02;
 
+    float &e = globalTranslation.z;
+    e += scene_size/20 * (dir?-1:+1);
 }

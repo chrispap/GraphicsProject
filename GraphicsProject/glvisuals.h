@@ -3,32 +3,38 @@
 
 #include "mesh.h"
 
+const float PI=3.14159;
+
 class GlVisuals
 {
-    static const float PI;
-    static const int N;
-    bool perspective_proj;
-    Point globalRot;
-    Point globalTranslation;
-
+    /* Parameters */
     float scene_size;
     float scene_dist;
+    Point globalRot;
+    Point globalTranslation;
+    bool perspective_proj;
+
+    /* For animation */
     float t;
     int milli0;
+
+    /* For UI */
     int mouselastX;
     int mouselastY;
     int selObj;
     int selT;
     int style;
 
+    /* Scene objects */
+    vector<Mesh*> armadillo;
+    vector<Mesh*> car;
+    vector<Mesh*> intersection;
+
+    /* Methods */
     void loadScene();
     void drawScene();
     void intersectScene();
     void drawAxes();
-
-    vector<Mesh*> armadillo;
-    vector<Mesh*> car;
-    vector<Mesh*> intersection;
 
 public:
     GlVisuals();

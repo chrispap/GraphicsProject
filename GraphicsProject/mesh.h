@@ -19,7 +19,7 @@
 
 #define BVL_SIZE(L) ((1<<((L)+1))-1)
 #define BVL 5
-#define VDIV 50
+#define VDIV 100
 
 using namespace std;
 
@@ -43,19 +43,19 @@ class Mesh
     void drawTriangles (const Colour &col, bool wire=0);
     void drawTriangleBoxes (const Colour &col);
     void drawNormals (const Colour &col);
-    void drawAABB (const Colour &col);
+    void drawAABB (const Colour &col, bool skipHier=false);
     void drawVoxels (const Colour &col);
 
     /** Static utility methodos */
     static void loadTrianglesFromOBJ (string filename,
         vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt=0);
-    static void findCollisions (const Mesh &m1, const Mesh &m2,
+    static void findCollisions ( Mesh &m1,  Mesh &m2,
         vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
 
 public:
     Mesh ();
     Mesh (string filename, bool ccw=0, bool vt=0);
-    Mesh (const Mesh &m1, const Mesh &m2, bool intersectBoth=0);
+    Mesh ( Mesh &m1,  Mesh &m2, bool intersectBoth=0);
     Mesh (const Mesh &original);
    ~Mesh (void);
 
@@ -65,7 +65,7 @@ public:
     void cornerAlign ();
     void centerAlign ();
     void setMaxSize (float size);
-    void translate (const Point &p) { mPos.add(p);}
+    void move (const Point &p) { mPos.add(p);}
     void rotate (const Point &p) { mRot.add(p);}
     void setPosition (const Point &p) { mPos = p;}
     void setRotation (const Point &p) {mRot = p;}
@@ -80,8 +80,9 @@ enum Style {
     WIRE    = (1<<1),
     NORMALS = (1<<2),
     AABB    = (1<<3),
-    TBOXES  = (1<<4),
-    VOXELS  = (1<<5)
+    AABBH   = (1<<4),
+    TBOXES  = (1<<5),
+    VOXELS  = (1<<6)
 };
 
 #endif
