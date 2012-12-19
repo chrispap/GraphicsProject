@@ -24,7 +24,7 @@ GlVisuals::GlVisuals():
     perspective_proj (1),
     scene_size (100),
     scene_dist (scene_size*0.8),
-    selObj (-1),
+    selObj (0),
     selT ('z'),
     milli0 (-1),
     t (0.0),
@@ -48,46 +48,44 @@ GlVisuals::~GlVisuals()
 /** Manage scene */
 void GlVisuals::loadScene()
 {
-
-    /****************
-     * Load Model 1 *
-     ****************/
     puts("\n ==== Armadillo ====");
     armadillo.push_back (new Mesh("Model_1.obj", 0, 0));
     armadillo[0]->setMaxSize(scene_size/2);
 
-    /****************
-     * Load Model 2 *
-     ****************/
     puts("\n ==== Car ====");
     car.push_back (new Mesh("Model_2.obj", 1, 0));
     car[0]->setMaxSize(scene_size/3);
-
+	
+    intersectScene();
 }
 
 void GlVisuals::intersectScene()
 {
-    if (selObj<0 || (selObj+1)>armadillo.size())
-        cout << "Select a valid object first" << endl;
-    else {
-        cout << " * Intersections * " << endl;
+    for (int i=0; i<intersection.size(); ++i)
+        delete intersection[i];
 
-        for (int i=0; i<intersection.size(); ++i)
-            delete intersection[i];
+    intersection.clear();
 
-        intersection.clear();
+    for (int i=0; i<armadillo.size(); ++i) {
+        for (int j=0; j<car.size(); ++j)
+            intersection.push_back (new Mesh(*armadillo[i], *car[j], 1));
 
-        for (int i=0; i<car.size(); ++i) {
-            intersection.push_back (new Mesh(*armadillo[selObj], *car[i], 1));
-        }
-
-        for (int i=0; i<armadillo.size(); ++i) {
-            if (i==selObj) continue;
-            intersection.push_back (new Mesh(*armadillo[selObj], *armadillo[i], 1));
-        }
-
+        for (int k=i+1; k<armadillo.size(); ++k)
+            intersection.push_back (new Mesh(*armadillo[i], *armadillo[k], 1));
     }
+}
 
+void GlVisuals::duplicateModel(bool shift)
+{
+	vector<Mesh*> &model = shift? car: armadillo;
+	
+	model.push_back (new Mesh(*model.back()));
+	Point mov = Point(model.back()->getBox().getSize());
+	mov.x=0;mov.y=0;
+	model.back()->move(mov);
+	model.back()->reduce();
+
+	intersectScene();
 }
 
 void GlVisuals::drawScene()
@@ -202,6 +200,9 @@ void GlVisuals::setEllapsedMillis(int millis)
 
 void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
 {
+	bool ctrl  =  modif & 0x01;
+	bool shift =  modif & 0x02;
+	
     key = tolower(key);
     int _style=0;
 
@@ -212,6 +213,7 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
         if (key>='x' && key <='z') selT = key;
         else if (key>='1' && key <= '9') selObj = key-'0'-1;
         else if (key == '0') selObj = -1;
+        else if (key == 'd') duplicateModel(shift);
         else if (key=='i') intersectScene();
         else if (key=='s') _style = SOLID;
         else if (key=='w') _style = WIRE;
@@ -244,6 +246,8 @@ void GlVisuals::arrowEvent (int dir, int modif)
             car[selObj]->move(t);
         else if (!shift && selObj<armadillo.size())
             armadillo[selObj]->move(t);
+
+        //it slows things :( intersectScene();
     }
 }
 

@@ -251,75 +251,82 @@ void Mesh::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector
 
 void Mesh::findCollisions( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both)
 {
-    if (!Geom::intersects (m1.getBox(), m2.getBox())) return; // trivial check
+    Box bbox1 = Box(m1.getBox()).add(m1.mPos);
+    Box bbox2 = Box(m2.getBox()).add(m2.mPos);
 
-    //TODO Eliminate vertex repetition
-    vector<Triangle> const &m1t = m1.mTriangles;
-    vector<Triangle> const &m2t = m2.mTriangles;
+    if (Geom::intersects (bbox1, bbox2)) // trivial check
+    {
+        //TODO Eliminate vertex repetition
 
-    unsigned int count=0;       // count intersecting triangles
-    unsigned int m1ti;          // index to model's 1 triangles
-    bool m1tCollided;           // Flag indicating the collision of a triangle in the outer loop
-    vector<char> m2tCollided;   // Keep track of allready collided triangles
-    if (both)                   // We need it only if we are looking for triangles from both models
-        m2tCollided.resize(m2t.size(), 0);
+        m1.hardTranslate(m1.mPos);
+        m2.hardTranslate(m2.mPos);
 
-    vector<Point>::iterator vi;
-    Point tr1 = m1.mPos;
-    Point tr2 = m2.mPos;
-    for (vi=m1.mVertices.begin(); vi!= m1.mVertices.end(); ++vi) vi->add(tr1);
-    for (vi=m2.mVertices.begin(); vi!= m2.mVertices.end(); ++vi) vi->add(tr2);
-    m1.updateTriangleData();
-    m1.createBoundingBoxHierarchy();
-    m2.updateTriangleData();
-    m2.createBoundingBoxHierarchy();
+        vector<Triangle> const &m1t = m1.mTriangles;
+        vector<Triangle> const &m2t = m2.mTriangles;
 
-    for (m1ti=0; m1ti<m1t.size(); ++m1ti) { // for all triangles of model 1
-        m1tCollided=false;
+        unsigned int count=0;       // count intersecting triangles
+        unsigned int m1ti;          // index to model's 1 triangles
+        bool m1tCollided;           // Flag indicating the collision of a triangle in the outer loop
+        vector<char> m2tCollided;   // Keep track of allready collided triangles
+        if (both)                   // We need it only if we are looking for triangles from both models
+            m2tCollided.resize(m2t.size(), 0);
 
-        for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {  // for all bounding boxes of model 2
-            if (!Geom::intersects(m2.mAABB[bi], m1t[m1ti].box)) continue;
+        for (m1ti=0; m1ti<m1t.size(); ++m1ti) { // for all triangles of model 1
+            m1tCollided=false;
 
-            list<int>::const_iterator m2ti;
-            for (m2ti = m2.mAABBTriangles[bi].begin(); m2ti!=m2.mAABBTriangles[bi].end(); ++m2ti) {
-                if (m1tCollided && m2tCollided[*m2ti]) continue;
-                if (!Geom::intersects(m1t[m1ti], m2t[*m2ti])) continue;
+            for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {  // for all bounding boxes of model 2
+                if (!Geom::intersects(m2.mAABB[bi], m1t[m1ti].box)) continue;
 
-                /* Add the colliding triangle of the first model. */
-                if (!m1tCollided) {
-                    vertices.push_back(m1t[m1ti].v1());
-                    vertices.push_back(m1t[m1ti].v2());
-                    vertices.push_back(m1t[m1ti].v3());
-                    triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
-                    count++;
-                    m1tCollided=true;
-                }
-                /* Add the colliding triangle of the second model if this is requested, otherwise break. */
-                if (!both)
-                    break;
-                else if (!m2tCollided[*m2ti]) {
-                    vertices.push_back(m2t[*m2ti].v1());
-                    vertices.push_back(m2t[*m2ti].v2());
-                    vertices.push_back(m2t[*m2ti].v3());
-                    triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
-                    count++;
-                    m2tCollided[*m2ti]=true;
+                list<int>::const_iterator m2ti;
+                for (m2ti = m2.mAABBTriangles[bi].begin(); m2ti!=m2.mAABBTriangles[bi].end(); ++m2ti) {
+                    if (m1tCollided && m2tCollided[*m2ti]) continue;
+                    if (!Geom::intersects(m1t[m1ti], m2t[*m2ti])) continue;
+
+                    /* Add the colliding triangle of the first model. */
+                    if (!m1tCollided) {
+                        vertices.push_back(m1t[m1ti].v1());
+                        vertices.push_back(m1t[m1ti].v2());
+                        vertices.push_back(m1t[m1ti].v3());
+                        triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
+                        count++;
+                        m1tCollided=true;
+                    }
+                    /* Add the colliding triangle of the second model if this is requested, otherwise break. */
+                    if (!both)
+                        break;
+                    else if (!m2tCollided[*m2ti]) {
+                        vertices.push_back(m2t[*m2ti].v1());
+                        vertices.push_back(m2t[*m2ti].v2());
+                        vertices.push_back(m2t[*m2ti].v3());
+                        triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
+                        count++;
+                        m2tCollided[*m2ti]=true;
+                    }
                 }
             }
         }
+
+        Point restore = Point(m1.mPos).scale(-1);
+        m1.hardTranslate(restore);
+        restore = Point(m2.mPos).scale(-1);;
+        m2.hardTranslate(restore);
     }
-
-    for (vi=m1.mVertices.begin(); vi!= m1.mVertices.end(); ++vi) vi->sub(tr1);
-    for (vi=m2.mVertices.begin(); vi!= m2.mVertices.end(); ++vi) vi->sub(tr2);
-    m1.updateTriangleData();
-    m1.createBoundingBoxHierarchy();
-    m2.updateTriangleData();
-    m2.createBoundingBoxHierarchy();
-
 }
 
 
 /** Editing */
+void Mesh::hardTranslate(const Point &p)
+{
+    vector<Point>::iterator vi;
+    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
+        vi->add(p);
+
+    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
+        mAABB[bi].add(p);
+
+    updateTriangleData();
+}
+
 void Mesh::setMaxSize(float size)
 {
     float s = size / mAABB[0].getMaxSize();

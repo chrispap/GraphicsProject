@@ -40,6 +40,7 @@ class Mesh
     void createTriangleLists ();
     void updateTriangleData ();
     void calculateVolume ();
+    void hardTranslate(const Point &p);
     void drawTriangles (const Colour &col, bool wire=0);
     void drawTriangleBoxes (const Colour &col);
     void drawNormals (const Colour &col);

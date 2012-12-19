@@ -88,6 +88,8 @@ struct Box
 
     float getZSize() const { return max.z - min.z;}
 
+    Point getSize() const { return Point(getXSize(),getYSize(), getZSize());}
+
     float getMinSize() const { return std::min(getXSize(),std::min(getYSize(),getZSize()));}
 
     float getMaxSize() const { return std::max(getXSize(),std::max(getYSize(),getZSize()));}
