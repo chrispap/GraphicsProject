@@ -23,8 +23,8 @@
 Mesh::Mesh(string filename, bool ccw,  bool vt):
     mRot(0,0,0),
     mPos(0,0,0),
-    mAABB((2<<BVL)-1),
-    mAABBTriangles((2<<BVL)-1)
+    mAABB(BVL_SIZE(BVL)),
+    mAABBTriangles(BVL_SIZE(BVL))
 {
     clock_t t = clock();
     loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
@@ -39,8 +39,8 @@ Mesh::Mesh(string filename, bool ccw,  bool vt):
 Mesh::Mesh(const Mesh &m1, const Mesh &m2, bool both):
     mRot(0,0,0),
     mPos(0,0,0),
-    mAABB((2<<BVL)-1),
-    mAABBTriangles((2<<BVL)-1)
+    mAABB(BVL_SIZE(BVL)),
+    mAABBTriangles(BVL_SIZE(BVL))
 {
     clock_t t = clock();
     findCollisions(m1, m2, mVertices, mTriangles, both);
@@ -98,11 +98,11 @@ void Mesh::createBoundingBoxHierarchy()
     max.x = max.y = max.z = FLT_MIN;
     vector<Point>::const_iterator vi;
     for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
-        if (vi->x > max.x) max.x = vi->x;
+        if      (vi->x > max.x) max.x = vi->x;
         else if (vi->x < min.x) min.x = vi->x;
-        if (vi->y > max.y) max.y = vi->y;
+        if      (vi->y > max.y) max.y = vi->y;
         else if (vi->y < min.y) min.y = vi->y;
-        if (vi->z > max.z) max.z = vi->z;
+        if      (vi->z > max.z) max.z = vi->z;
         else if (vi->z < min.z) min.z = vi->z;
     }
     mAABB[0] = Box(min, max);
@@ -141,14 +141,14 @@ void Mesh::createBoundingBoxHierarchy()
                 mAABBTriangles[left?ch1:ch2].push_back(*bvi);
                 Point &bmin = left? min1: min2;
                 Point &bmax = left? max1: max2;
-                
+
                 for (int vi=0; vi<3; ++vi) {
                     Point &v = mVertices[t.v[vi]];
-                    if (v.x > bmax.x) bmax.x = v.x;
+                    if      (v.x > bmax.x) bmax.x = v.x;
                     else if (v.x < bmin.x) bmin.x = v.x;
-                    if (v.y > bmax.y) bmax.y = v.y;
+                    if      (v.y > bmax.y) bmax.y = v.y;
                     else if (v.y < bmin.y) bmin.y = v.y;
-                    if (v.z > bmax.z) bmax.z = v.z;
+                    if      (v.z > bmax.z) bmax.z = v.z;
                     else if (v.z < bmin.z) bmin.z = v.z;
                 }
             }
@@ -181,7 +181,7 @@ void Mesh::calculateVolume()
                 /* Count intersecting triangles */
                 intersectionsCount=0;
                 list<int>::const_iterator ti;
-                for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) {
+                for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
                     if (!Geom::intersects(mAABB[bi], ray)) continue;
                     for (ti = mAABBTriangles[bi].begin(); ti!=mAABBTriangles[bi].end(); ++ti) {
                         Triangle &t = mTriangles[*ti];
@@ -212,7 +212,7 @@ void Mesh::calculateVolume()
         float boundingVol=0;
         for (int bi=(1<<bvlevel) -1; bi< (2<<bvlevel) -1; ++bi)
             boundingVol += mAABB[bi].getVolume();
-        coverage[bvlevel] = cover*fullVol/boundingVol;
+        coverage[bvlevel] = (cover*fullVol)/boundingVol;
     }
 }
 
@@ -306,7 +306,7 @@ void Mesh::setMaxSize(float size)
     for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
         pi->scale(s);
 
-    for (int bi=0; bi<(2<<BVL)-1; ++bi)
+    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
         mAABB[bi].scale(s);
 
     updateTriangleData();
@@ -323,7 +323,7 @@ void Mesh::cornerAlign()
         pi->sub(mAABB[0].min);
 
     Point dl(mAABB[0].min);
-    for (int bi=0; bi<(2<<BVL)-1; ++bi)
+    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
         mAABB[bi].sub(dl);
 
     updateTriangleData();
@@ -345,7 +345,7 @@ void Mesh::centerAlign()
     for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
         pi->sub(c1);
 
-    for (int bi=0; bi<(2<<BVL)-1; ++bi)
+    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
         mAABB[bi].sub(c1);
 
     updateTriangleData();
@@ -482,7 +482,7 @@ void Mesh::drawAABB(const Colour &col)
     /* Draw only the main box and the
      * leaves of the tree (last level of hierarchy */
     mAABB[0].draw(col, 0);
-    for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) {
+    for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
         mAABB[bi].draw(col, 0);
         mAABB[bi].draw(col, 0x80);
     }

@@ -233,13 +233,13 @@ public:
 
     static bool intersects (const Box &b, const Line &l)
     {
-        /* local variables declare static to 
+        /* local variables declare static in order to
            reduce the storage required for recursion */
-        char c1, c2, bit, axis;
-        float tdl;
-        Point dl, i;
-        vector<Point> Rv(3);
-        Triangle R = Triangle(&Rv, 0,1,2);
+        static char c1, c2, bit, axis;
+        static float tdl;
+        static Point dl, i;
+        static vector<Point> Rv(3);
+        static Triangle R = Triangle(&Rv, 0,1,2);
 
         /* Trivial accept / reject */
         c1 = mkcode(l.start, b);
@@ -253,18 +253,18 @@ public:
         bit = -1;
         while (!((c1^c2) & (1<<(++bit))));
         axis = 2-bit/2;
-        
+
         /* Construct a triangle on the plane of intersection */
         Rv[0] = Rv[1] = Rv[2] = bit%2? b.min: b.max;
         Rv[1].data[(axis+1)%3]+=10;  // keep the value on the plane axis
         Rv[2].data[(axis+2)%3]+=10; // and alter the values on other 2 axes
         R.update();                // Force the triangle to compute its coefficients
-        
+
         /* Find the point of intersection */
         dl = Point(l.end).sub(l.start);
         tdl = -R.planeEquation(l.start)/(R.planeEquation(dl)- R.D);
         i = Point(l.start).add(dl.scale(tdl));
-        
+
         return (rand()%2)? intersects(b, Line(l.start, i)) : intersects(b, Line(i, l.end));
     }
 

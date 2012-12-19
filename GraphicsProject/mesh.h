@@ -17,8 +17,9 @@
 #include <GL/glu.h>
 #endif
 
-#define BVL 3
-#define VDIV 100
+#define BVL_SIZE(L) ((1<<((L)+1))-1)
+#define BVL 5
+#define VDIV 50
 
 using namespace std;
 
