@@ -28,6 +28,7 @@ class Mesh
     /** Data members */
     vector<Point> mVertices;            // Vertex list
     vector<Triangle> mTriangles;        // Triangle list | contains indices to the Vertex list
+    vector<Point> mVertexNormals;       // Normals per vertex
     vector<set<int> > mVertexTriangles; // List of lists of the triangles that are connected to each vertex
     vector<list<int> > mAABBTriangles;  // Triangles of each hierarchy level
     vector<Box> mAABB;                  // The bounding box hierarchy of the model
@@ -38,6 +39,7 @@ class Mesh
 
     void createBoundingBoxHierarchy ();
     void createTriangleLists ();
+    void createNormals ();
     void updateTriangleData ();
     void calculateVolume ();
     void hardTranslate(const Point &p);

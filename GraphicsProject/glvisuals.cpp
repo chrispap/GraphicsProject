@@ -128,7 +128,7 @@ void GlVisuals::glInitialize()
     glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseLight );
     glLightfv( GL_LIGHT0, GL_POSITION, lightPos );
 
-    glShadeModel( GL_FLAT );
+    //glShadeModel( GL_FLAT );
     glEnable(GL_NORMALIZE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc( GL_LEQUAL );
@@ -264,7 +264,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
         else if (!shift && selObj<armadillo.size())
             armadillo[selObj]->move(t);
 
-        //it slows things :( 
+        //it slows things down but never mind... 
         intersectScene();
     }
 }

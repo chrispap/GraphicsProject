@@ -29,9 +29,9 @@ Mesh::Mesh(string filename, bool ccw,  bool vt):
     clock_t t = clock();
     loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
     createTriangleLists();
-    updateTriangleData();
     createBoundingBoxHierarchy();
     centerAlign();
+    createNormals();
     calculateVolume();
     for (int blevel=0; blevel<=BVL; blevel++)
         printf("Mesh coverage level:\t%d: %4.2f%% \n", blevel, 100*coverage[blevel]);
@@ -46,15 +46,13 @@ Mesh::Mesh( Mesh &m1,  Mesh &m2, bool both):
 {
     clock_t t = clock();
     findCollisions(m1, m2, mVertices, mTriangles, both);
-    createTriangleLists();
-    updateTriangleData();
-    createBoundingBoxHierarchy();
     printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Mesh::Mesh(const Mesh &copyfrom):
     mVertices (copyfrom.mVertices),
     mTriangles (copyfrom.mTriangles),
+    mVertexNormals (copyfrom.mVertexNormals),
     mVertexTriangles (copyfrom.mVertexTriangles),
     mAABBTriangles (copyfrom.mAABBTriangles),
     mAABB (copyfrom.mAABB),
@@ -82,6 +80,20 @@ void Mesh::createTriangleLists()
         mVertexTriangles[ti->vi1].insert(i);
         mVertexTriangles[ti->vi2].insert(i);
         mVertexTriangles[ti->vi3].insert(i++);
+    }
+}
+
+void Mesh::createNormals()
+{
+    mVertexNormals.clear();
+    mVertexNormals.resize(mVertices.size());
+    Point normSum;
+    for (int vi=0; vi< mVertices.size(); ++vi) {
+        normSum.x=0; normSum.y=0; normSum.z=0;
+        set<int>::const_iterator _ti;
+        for (_ti=mVertexTriangles[vi].begin(); _ti!=mVertexTriangles[vi].end(); ++_ti)
+            normSum.add(mTriangles[*_ti].getNormal());
+        mVertexNormals[vi] = normSum;
     }
 }
 
@@ -446,7 +458,6 @@ void Mesh::reduce(int LoD)
         procList.erase(tx);
         for (vkLi = vkList.begin(); vkLi != vkList.end(); ++vkLi)
             procList.erase(*vkLi);
-
     }
 
     /* Clean up the data structures holding the model data */
@@ -460,6 +471,7 @@ void Mesh::reduce(int LoD)
 
     createTriangleLists();
     updateTriangleData();
+    createNormals();
     createBoundingBoxHierarchy();
     printf ("Mesh reduction took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
@@ -480,11 +492,14 @@ void Mesh::drawTriangles(const Colour &col, bool wire)
     glPolygonMode(GL_FRONT_AND_BACK, wire? GL_LINE: GL_FILL);
     glBegin(GL_TRIANGLES);
     glColor3ubv(col.data);
+    bool normExist = mVertexNormals.size()>0;
     vector<Triangle>::const_iterator ti;
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
-        glNormal3fv(ti->getNormal().data);
+        if (normExist) glNormal3fv(mVertexNormals[ti->vi1].data);
         glVertex3fv(ti->v1().data);
+        if (normExist) glNormal3fv(mVertexNormals[ti->vi2].data);
         glVertex3fv(ti->v2().data);
+        if (normExist) glNormal3fv(mVertexNormals[ti->vi3].data);
         glVertex3fv(ti->v3().data);
     }
     glEnd();
