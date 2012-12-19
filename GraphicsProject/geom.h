@@ -37,7 +37,7 @@ struct Point {
 
     Point &add(const Point &v) { x += v.x; y += v.y; z += v.z; return *this;}
 
-    Point &sub(const Point &v) {x -= v.x; y -= v.y; z -= v.z; return *this; }
+    Point &sub(const Point &v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
 
     Point &scale(const float s) { x *= s; y *= s; z *= s; return *this; }
 };
@@ -217,14 +217,10 @@ public:
 
     static char mkcode (const Point &v, const Box &b)
     {
-        Point c1 = b.min;
-        Point c2 = b.max;
-        unsigned char code = 0x00;
-
-        if (v.z>c2.z) code|=0x01; else if (v.z<c1.z) code |=0x02;
-        if (v.y>c2.y) code|=0x04; else if (v.y<c1.y) code |=0x08;
-        if (v.x>c2.x) code|=0x10; else if (v.x<c1.x) code |=0x20;
-
+        char code = 0x00;
+        if (v.z>=b.max.z) code|=0x01; else if (v.z<=b.min.z) code |=0x02;
+        if (v.y>=b.max.y) code|=0x04; else if (v.y<=b.min.y) code |=0x08;
+        if (v.x>=b.max.x) code|=0x10; else if (v.x<=b.min.x) code |=0x20;
         return code;
     }
 
@@ -237,44 +233,39 @@ public:
 
     static bool intersects (const Box &b, const Line &l)
     {
-        static char c1, c2;
+        /* local variables declare static to 
+           reduce the storage required for recursion */
+        char c1, c2, bit, axis;
+        float tdl;
+        Point dl, i;
+        vector<Point> Rv(3);
+        Triangle R = Triangle(&Rv, 0,1,2);
+
+        /* Trivial accept / reject */
         c1 = mkcode(l.start, b);
         c2 = mkcode(l.end, b);
 
         if (!(c1 | c2)) return true;
         if ( (c1 & c2)) return false;
+        if ( !c1||!c2)  return true;
 
-        /* Trim the line segment */
-        static vector<Point> Rvecs(3);
-        static Triangle R = Triangle(&Rvecs, 0,1,2);
-        static Point dl, i;
-        static float tdl;
-        static char bitNo, dim;
-        static bool min_max;
-
-        bitNo = 0;
-        while ( ( (c1^c2) & (1<<bitNo) ) == 0) {     // Locate the first different bit
-            ++bitNo;
-        }
-        printf("0x%X ", (int)bitNo);
-        fflush(stdout);
-
-        dim = 2-bitNo/2;                    // Determine the dimension [X|Y|Z]
-        min_max = bitNo%2;                  // [XYZ]min OR [XYZ]max
-        Rvecs[0] = (min_max? b.min: b.max);
-        Rvecs[1] = Rvecs[0];
-        Rvecs[2] = Rvecs[0];
-        //Rvecs[1].data[(dim+1)%3]+=10;
-        //Rvecs[2].data[(dim+2)%3]+=10;
-
-        /* Find the intersection point */
+        /* Find a plane of intersection */
+        bit = -1;
+        while (!((c1^c2) & (1<<(++bit))));
+        axis = 2-bit/2;
+        
+        /* Construct a triangle on the plane of intersection */
+        Rv[0] = Rv[1] = Rv[2] = bit%2? b.min: b.max;
+        Rv[1].data[(axis+1)%3]+=10;  // keep the value on the plane axis
+        Rv[2].data[(axis+2)%3]+=10; // and alter the values on other 2 axes
+        R.update();                // Force the triangle to compute its coefficients
+        
+        /* Find the point of intersection */
         dl = Point(l.end).sub(l.start);
         tdl = -R.planeEquation(l.start)/(R.planeEquation(dl)- R.D);
         i = Point(l.start).add(dl.scale(tdl));
-
-        return ( R.planeEquation(l.start) > 0 )?
-            intersects( b, Line(i, l.end)) :
-            intersects( b, Line(l.start, i));
+        
+        return (rand()%2)? intersects(b, Line(l.start, i)) : intersects(b, Line(i, l.end));
     }
 
     static bool intersects (const Triangle &t, const Line &l)
@@ -302,7 +293,9 @@ public:
             float eq2 = Triangle(&tempVec, 1, 2, 4).planeEquation(i);
             float eq3 = Triangle(&tempVec, 2, 3, 5).planeEquation(i);
 
-            return ( (eq1>0 && eq2>0 && eq3>0) || (eq1<0 && eq2<0 && eq3<0) )? true : false;
+            if ( (eq1>0 && eq2>0 && eq3>0) || (eq1<0 && eq2<0 && eq3<0) )
+                return true;
+            else return false;
         }
     }
 

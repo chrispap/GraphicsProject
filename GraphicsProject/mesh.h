@@ -18,7 +18,7 @@
 #endif
 
 #define BVL 3
-#define VDIV 50
+#define VDIV 100
 
 using namespace std;
 

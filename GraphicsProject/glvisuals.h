@@ -19,6 +19,7 @@ class GlVisuals
     int mouselastY;
     int selObj;
     int selT;
+    int style;
 
     void loadScene();
     void drawScene();

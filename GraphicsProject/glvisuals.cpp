@@ -26,14 +26,15 @@ GlVisuals::GlVisuals():
     car(N),
     intersection(N),
     globalTranslation (0,0,0),
-    globalRot (45,0,0),
+    globalRot (30,180,0),
     perspective_proj (1),
     scene_size (100),
-    scene_dist (scene_size),
+    scene_dist (scene_size*0.8),
     selObj (-1),
     selT ('z'),
     milli0 (-1),
-    t (0.0)
+    t (0.0),
+    style (SOLID | VOXELS)
 {
     loadScene();
 }
@@ -94,9 +95,9 @@ void GlVisuals::drawScene()
 {
     Point t;
     for (int i=0; i<N; ++i) {
-        car[i]->draw (Colour(0,0x66,0x66), SOLID | VOXELS | ((i==selObj)?AABB:0));
-        armadillo[i]->draw (Colour(0x66,0x66,0), SOLID | VOXELS | ((i==selObj)?AABB:0));
-        intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE  | ((i==selObj)?AABB:0));
+        car[i]->draw (Colour(0,0x66,0x66), style | ((i==selObj)?AABB:0));
+        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==selObj)?AABB:0));
+        intersection[i]->draw (Colour(0x66,0,0x66), style  | ((i==selObj)?AABB:0));
     }
 }
 
@@ -211,6 +212,7 @@ void GlVisuals::setEllapsedMillis(int millis)
 void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
 {
     key = tolower(key);
+    int _style=0;
 
     if (up) {}//selObj = -1;
     else {
@@ -218,7 +220,13 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
         else if (key>='1' && key <= ('0'+N)) selObj = key-'0'-1;
         else if (key == '0') selObj = -1;
         else if (key=='i') intersectScene();
+        else if (key=='s') _style = SOLID;
+        else if (key=='w') _style = WIRE;
+        else if (key=='v') _style = VOXELS;
+
+        if (_style) style = (style&_style)? (style&(~_style)): style|_style;
     }
+
 }
 
 void GlVisuals::arrowEvent (int dir, int modif)

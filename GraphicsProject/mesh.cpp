@@ -96,7 +96,6 @@ void Mesh::createBoundingBoxHierarchy()
     Point min,max;
     min.x = min.y = min.z = FLT_MAX;
     max.x = max.y = max.z = FLT_MIN;
-
     vector<Point>::const_iterator vi;
     for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
         if (vi->x > max.x) max.x = vi->x;
@@ -106,12 +105,12 @@ void Mesh::createBoundingBoxHierarchy()
         if (vi->z > max.z) max.z = vi->z;
         else if (vi->z < min.z) min.z = vi->z;
     }
-
     mAABB[0] = Box(min, max);
 
     /* Levels of Hierrarchy */
-    for (int ti=0; ti < mTriangles.size(); ++ti)
-        mAABBTriangles[0].push_back(ti);
+
+    /*Construct a triangle list with all the triangles */
+    for (int ti=0; ti < mTriangles.size(); ++ti) mAABBTriangles[0].push_back(ti);
 
     /* For each level of hierarchy,
      * for each node of this level,
@@ -138,9 +137,11 @@ void Mesh::createBoundingBoxHierarchy()
             for (bvi=mAABBTriangles[parent].begin(); bvi!=mAABBTriangles[parent].end(); ++bvi) {
                 Triangle &t = mTriangles[*bvi];
                 bool left = Geom::intersects(box1, t.getBox());
+
                 mAABBTriangles[left?ch1:ch2].push_back(*bvi);
                 Point &bmin = left? min1: min2;
                 Point &bmax = left? max1: max2;
+                
                 for (int vi=0; vi<3; ++vi) {
                     Point &v = mVertices[t.v[vi]];
                     if (v.x > bmax.x) bmax.x = v.x;
@@ -163,20 +164,22 @@ void Mesh::createBoundingBoxHierarchy()
 void Mesh::calculateVolume()
 {
     const float dl = mAABB[0].getXSize()/VDIV;
-    if (dl<0.01) return;
+    if (dl<0.00001) return;
 
-    unsigned long int voxelCount=0;
-    unsigned long int voxelTotal=0;
-    int xi=0;
+    unsigned long int voxelCount=0, voxelTotal=0, intersectionsCount=0, xi=0;
+
     for (float x=mAABB[0].min.x+dl/2; x<mAABB[0].max.x; x+=dl) {
         printf("[%c] [%-2d%%]", "|/-\\"[xi++%4], (int)(100*((x-mAABB[0].min.x)/mAABB[0].getXSize())));fflush(stdout);
         for (float y=mAABB[0].min.y+dl/2; y<mAABB[0].max.y; y+=dl) {
             for (float z=mAABB[0].min.z+dl/2; z<mAABB[0].max.z; z+=dl)
             {
-                int intersectionsCount=0;
+                /* Construct ray */
                 Point ray0(x,y,z);
-                Point rayFar(x*(x>0?200:-200),y*(y>0?200:-200),z*(z>0?200:-200));
+                Point rayFar(x*20,y*20,z*20);
                 Line ray (ray0, rayFar);
+
+                /* Count intersecting triangles */
+                intersectionsCount=0;
                 list<int>::const_iterator ti;
                 for (int bi=(1<<BVL)-1; bi<(2<<BVL)-1; ++bi) {
                     if (!Geom::intersects(mAABB[bi], ray)) continue;
@@ -186,16 +189,19 @@ void Mesh::calculateVolume()
                         if ( Geom::intersects(t, ray)) ++intersectionsCount;
                     }
                 }
+
+                /* For odd number of triangles count this voxel to the total volume */
                 if (intersectionsCount%2 == 1){
                     mVoxels.push_back( Box (Point(x-dl/2.2, y-dl/2.2, z-dl/2.2), Point(x+dl/2.2, y+dl/2.2, z+dl/2.2)));
-                     ++voxelCount;
-                 }
+                    ++voxelCount;
+                }
                 ++voxelTotal;
             }
         }
         printf ("\r");
     }
     printf("             \r");
+    printf("Voxel total: %ld", voxelTotal);
 
     /* Calculate the coverage for every level */
     float cover = ((float)voxelCount)/voxelTotal;
