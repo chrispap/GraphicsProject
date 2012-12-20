@@ -24,8 +24,8 @@ GlVisuals::GlVisuals():
     perspective_proj (1),
     scene_size (100),
     scene_dist (scene_size*0.8),
-    selObj (0),
-    selT ('z'),
+    sel_i (-1),
+    sel_obj (0),
     milli0 (-1),
     t (0.0),
     style (SOLID)
@@ -100,17 +100,17 @@ void GlVisuals::duplicateModel(bool shift)
 	model.back()->move(mov);
 	model.back()->reduce();
 
-    selObj = model.size()-1;
+    sel_i = model.size()-1;
 	intersectScene();
 }
 
 void GlVisuals::drawScene()
 {
     for (int i=0; i<armadillo.size(); ++i)
-        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==selObj)?AABB:0));
+        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==sel_i&&sel_obj==0)?AABB:0));
 
     for (int i=0; i<car.size(); ++i)
-        car[i]->draw (Colour(0,0x66,0x66), style | ((i==selObj)?AABB:0));
+        car[i]->draw (Colour(0,0x66,0x66), style | ((i==sel_i&&sel_obj==1)?AABB:0));
 
     for (int i=0; i<intersection.size(); ++i)
         intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
@@ -222,13 +222,12 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
     key = tolower(key);
 
     if (up) {
-
+        //sel_i = -1;
     }
     else {
-        if (key>='x' && key <='z') selT = key;
-        else if (key>='1' && key <= '9') selObj = key-'0'-1;
-        else if (key == '0') selObj = -1;
-        else if (key == 'd') duplicateModel(shift);
+        if (isdigit(key)) { sel_i = key-'0'-1; sel_obj = (shift?1:0);}
+        else if (key=='0') sel_i = -1;
+        else if (key=='d') duplicateModel(shift);
         else if (key=='r') resetScene();
         else if (key=='i') intersectScene();
         else if (key=='s') style ^= SOLID;
@@ -244,7 +243,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
     bool ctrl  =  modif & 0x01;
     bool shift =  modif & 0x02;
 
-    if (selObj<0)
+    if (sel_i<0)
     {
         Point &t = globalTranslation;
         float &e = ctrl? t.z : dir&2? t.x : t.y;
@@ -256,13 +255,13 @@ void GlVisuals::arrowEvent (int dir, int modif)
         float &e = ctrl? t.y : dir&2? t.z : t.x;
         e = dir&1? e - scene_size/20: e + scene_size/20;
 
-        if (shift && selObj<car.size())
-            car[selObj]->move(t);
-        else if (!shift && selObj<armadillo.size())
-            armadillo[selObj]->move(t);
+        if (shift && sel_i<car.size())
+            car[sel_i]->move(t);
+        else if (!shift && sel_i<armadillo.size())
+            armadillo[sel_i]->move(t);
 
         //it slows things down but never mind... 
-        intersectScene();
+        //intersectScene();
     }
 }
 
@@ -277,7 +276,7 @@ void GlVisuals::mouseMoved(int x, int y, int modif)
     int dx = x - mouselastX;
     int dy = y - mouselastY;
 
-    //if (selObj<0){
+    //if (sel_i<0){
     if (!modif) {
         globalRot.y += (dx>>1);
         globalRot.z += (dy>>1);

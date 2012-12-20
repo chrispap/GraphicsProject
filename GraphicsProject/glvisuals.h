@@ -21,8 +21,8 @@ class GlVisuals
     /* For UI */
     int mouselastX;
     int mouselastY;
-    int selObj;
-    int selT;
+    int sel_i;
+    int sel_obj;
     int style;
 
     /* Scene objects */

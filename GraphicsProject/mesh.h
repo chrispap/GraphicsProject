@@ -19,7 +19,7 @@
 
 #define BVL_SIZE(L) ((1<<((L)+1))-1)
 #define BVL 5
-#define VDIV 100
+#define VDIV 20
 
 using namespace std;
 
