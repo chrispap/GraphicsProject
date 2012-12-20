@@ -396,6 +396,21 @@ void Mesh::centerAlign()
     updateTriangleData();
 }
 
+struct NormComp {
+    static vector<Triangle> *tVec;
+    static vector<Point> *nVec;
+  
+    bool operator() (const int& l, const int& r) const
+    {
+        float nl = Geom::dotprod((*nVec)[(*tVec)[l].vi1], (*nVec)[(*tVec)[l].vi2]);
+        float nr = Geom::dotprod((*nVec)[(*tVec)[r].vi1], (*nVec)[(*tVec)[r].vi2]);
+        return nl > nr;
+    }
+};
+
+vector<Triangle>* NormComp::tVec;
+vector<Point>* NormComp::nVec;
+
 void Mesh::reduce(int LoD)
 {
     clock_t t = clock();
@@ -412,8 +427,9 @@ void Mesh::reduce(int LoD)
     for (pli = procList.begin(); pli != procList.end(); ++pli) {
         ti = *pli;
 
-        if (mTriangles[ti].deleted)
-            continue;
+        if (mTriangles[ti].deleted){
+            procList.erase(ti); continue;
+        }
 
         /*1. Pick two vertices that will form the collapsing edge */
         int vk = mTriangles[ti].vi1;                // Vertex we keep of the collapsing edge
@@ -425,6 +441,7 @@ void Mesh::reduce(int LoD)
         /*2. Find the second triangle, apart ti, with edge [vk,vx]=tx */
         vxLi = vxList.begin();
         vkLi = vkList.begin();
+        tx = -1;
         while (vxLi != vxList.end() && vkLi != vkList.end()) {
             if (*vxLi < *vkLi) ++vxLi;
             else if (*vxLi > *vkLi) ++vkLi;
@@ -432,7 +449,7 @@ void Mesh::reduce(int LoD)
                 else { tx = *vxLi; break; }}
         }
 
-        if (mTriangles[tx].deleted)
+        if (tx==-1 || mTriangles[tx].deleted)
             continue;
 
         /*3. Delete the triangles of the collapsing edge */
