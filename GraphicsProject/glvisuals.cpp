@@ -220,10 +220,9 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
 	bool shift =  modif & 0x02;
 	
     key = tolower(key);
-    int _style=0;
 
     if (up) {
-        //selObj = -1;
+
     }
     else {
         if (key>='x' && key <='z') selT = key;
@@ -232,12 +231,10 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
         else if (key == 'd') duplicateModel(shift);
         else if (key=='r') resetScene();
         else if (key=='i') intersectScene();
-        else if (key=='s') _style = SOLID;
-        else if (key=='w') _style = WIRE;
-        else if (key=='v') _style = VOXELS;
-        else if (key=='b') _style = AABBH;
-
-        if (_style) style = (style&_style)? (style&(~_style)): style|_style;
+        else if (key=='s') style ^= SOLID;
+        else if (key=='w') style ^= WIRE;
+        else if (key=='v') style ^= VOXELS;
+        else if (key=='b') style ^= AABBH;
     }
 
 }

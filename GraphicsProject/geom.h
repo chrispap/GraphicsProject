@@ -29,9 +29,11 @@ struct Point {
         float data[3];
     };
 
-    Point(){ }
+    Point(float _x=0, float _y=0, float _z=0): x(_x), y(_y), z(_z) { }
 
-    Point(float _x, float _y, float _z): x(_x), y(_y), z(_z) { }
+    bool operator== (const Point &p) { return (x == p.x && y == p.y && z == p.z); }
+
+    bool operator!= (const Point &p) { return !(*this == p); }
 
     void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
 
