@@ -232,6 +232,7 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
         else if (key=='i') intersectScene();
         else if (key=='s') style ^= SOLID;
         else if (key=='w') style ^= WIRE;
+        else if (key=='n') style ^= NORMALS;
         else if (key=='v') style ^= VOXELS;
         else if (key=='b') style ^= AABBH;
     }
