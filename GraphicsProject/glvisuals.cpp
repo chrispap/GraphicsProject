@@ -102,10 +102,9 @@ void GlVisuals::duplicateModel(bool shift)
 	Point mov = Point(model.back()->getBox().getSize());
 	mov.x=0;mov.y=0;
 	model.back()->move(mov);
-	model.back()->reduce();
+	model.back()->reduce(80);
 
     sel_i = model.size()-1;
-	intersectScene();
 }
 
 void GlVisuals::drawScene()
@@ -267,7 +266,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
             armadillo[sel_i]->move(t);
 
         //it slows things down but never mind... 
-        intersectScene();
+        //intersectScene();
     }
 }
 

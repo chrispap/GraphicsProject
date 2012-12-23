@@ -405,39 +405,43 @@ void Mesh::centerAlign()
     updateTriangleData();
 }
 
-struct NormComp {
-    static vector<Triangle> *tVec;
-    static vector<Point> *nVec;
-  
-    bool operator() (const int& l, const int& r) const
-    {
-        float nl = Geom::dotprod((*nVec)[(*tVec)[l].vi1], (*nVec)[(*tVec)[l].vi2]);
-        float nr = Geom::dotprod((*nVec)[(*tVec)[r].vi1], (*nVec)[(*tVec)[r].vi2]);
-        return nl > nr;
-    }
-};
-
-vector<Triangle>* NormComp::tVec;
-vector<Point>* NormComp::nVec;
+/** 
+ * Comparator in order to sort the triangle list
+ * based on how parallel the normals in two vertices are 
+ */ 
+static vector<Triangle>* tVec;  // ptr to triangle list
+static vector<Point>* nVec;     // ptr to vertex normal list
+static bool NormalComparator (const int& l, const int& r)
+{
+    float nl = Geom::dotprod((*nVec)[(*tVec)[l].vi1], (*nVec)[(*tVec)[l].vi2]);
+    float nr = Geom::dotprod((*nVec)[(*tVec)[r].vi1], (*nVec)[(*tVec)[r].vi2]);
+    return nl > nr;
+}
 
 void Mesh::reduce(int LoD)
 {
     clock_t t = clock();
-    set<int> procList;      // List with triangles to process
-    set<int>::iterator pli; // Iterator to procList
-    int ti, tx;             // Indices of triangles to delete
+    list<int> procList;          // List of candidate triangles for collapse
+    list<int>::iterator pli;     // Iterator for the list above
+    int ti, tx;                 // Indices of current triangles proccessed
 
-    /* Populate triangle list with all the triangles */
+    /* Populate triangle list with all the triangles and sort it */
     pli = procList.begin();
     for (ti=0; ti < mTriangles.size(); ++ti)
         procList.insert(pli, ti);
+    
+    tVec = &mTriangles; nVec = &mVertexNormals;
+    procList.sort(NormalComparator);
+
+    int desiredRemovals = mTriangles.size()*(100-LoD)/100;
+    int removals = 0;
 
     /* Do the proccessing */
-    for (pli = procList.begin(); pli != procList.end(); ++pli) {
+    for (pli = procList.begin(); removals < desiredRemovals && pli != procList.end(); ++pli) {
         ti = *pli;
 
         if (mTriangles[ti].deleted){
-            procList.erase(ti); continue;
+            procList.remove(ti); continue;
         }
 
         /*1. Pick two vertices that will form the collapsing edge */
@@ -474,6 +478,9 @@ void Mesh::reduce(int LoD)
             }
         }
 
+        /* Place the new vertex in the middle ob the collapsed edge */
+        mVertices[vk] = Point(mVertices[vk]).add(mVertices[vx]).scale(0.5);
+
         /*6. Move the triangle list of the discarded vertex to the one we keeped */
         vkList.insert(vxList.begin(), vxList.end());
         vxList.clear();
@@ -481,9 +488,11 @@ void Mesh::reduce(int LoD)
         vkList.erase(tx);
 
         /* 7. Remove all the triangles of this area of the process list */
-        procList.erase(tx);
+        procList.remove(tx);
         for (vkLi = vkList.begin(); vkLi != vkList.end(); ++vkLi)
-            procList.erase(*vkLi);
+            procList.remove(*vkLi);
+
+        removals += 2;
     }
 
     /* Clean up the data structures holding the model data */
