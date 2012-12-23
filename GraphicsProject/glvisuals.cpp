@@ -252,13 +252,13 @@ void GlVisuals::arrowEvent (int dir, int modif)
     {
         Point &t = globTrans;
         float &e = ctrl? t.z : dir&2? t.x : t.y;
-        e = dir&1? e - scene_size/20: e + scene_size/20;
+        e = dir&1? e - scene_size/50: e + scene_size/50;
     }
     else
     {
         Point t(0,0,0);
         float &e = ctrl? t.y : dir&2? t.z : t.x;
-        e = dir&1? e - scene_size/20: e + scene_size/20;
+        e = dir&1? e - scene_size/50: e + scene_size/50;
 
         if (shift && sel_i<car.size())
             car[sel_i]->move(t);
