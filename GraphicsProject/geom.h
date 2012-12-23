@@ -35,6 +35,8 @@ struct Point {
 
     bool operator!= (const Point &p) { return !(*this == p); }
 
+    float r() { return pow((x*x+y*y+z*z), (float)1/3);}
+    
     void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
 
     Point &add(const Point &v) { x += v.x; y += v.y; z += v.z; return *this;}
@@ -74,14 +76,15 @@ struct Box
                     std::max(v1.z, std::max(v2.z, v3.z)));
     }
 
-    static void saturate (Box &box, Point &min, Point &max)
+    Box &forceMax (Box &maxBox)
     {
-        if (min.x<box.min.x) min.x = box.min.x;
-        if (min.y<box.min.y) min.y = box.min.y;
-        if (min.z<box.min.z) min.z = box.min.z;
-        if (max.x>box.max.x) max.x = box.max.x;
-        if (max.y>box.max.y) max.y = box.max.y;
-        if (max.z>box.max.z) max.z = box.max.z;
+        if (min.x < maxBox.min.x) min.x = maxBox.min.x;
+        if (min.y < maxBox.min.y) min.y = maxBox.min.y;
+        if (min.z < maxBox.min.z) min.z = maxBox.min.z;
+        if (max.x > maxBox.max.x) max.x = maxBox.max.x;
+        if (max.y > maxBox.max.y) max.y = maxBox.max.y;
+        if (max.z > maxBox.max.z) max.z = maxBox.max.z;
+        return *this;
     }
 
     float getXSize() const { return max.x - min.x;}
@@ -100,9 +103,9 @@ struct Box
 
     Box &add(const Point &v) { min.add(v); max.add(v); return *this; }
 
-    Box &sub(const Point &v){min.sub(v); max.sub(v);return *this; }
+    Box &sub(const Point &v) {min.sub(v); max.sub(v);return *this; }
 
-    Box &scale(const float s){min.scale(s); max.scale(s);return *this;}
+    Box &scale(const float s) {min.scale(s); max.scale(s);return *this;}
 
     void draw(const Colour &col, unsigned char a=0) const
     {
@@ -158,11 +161,11 @@ struct Box
 
 struct Triangle
 {
-    union { struct { int vi1, vi2, vi3;}; int v[3];}; // Indices to the above vector
-    vector<Point> *vecList;                          // Pointer to the vector containing the mVertices
-    float A, B, C, D;                               // Plane equation coefficients
-    Box box;                                       // Bounding box of the triangle
-    bool deleted;                                 // Flag indicating that a triangle should be considered deleted
+    union { struct { int vi1, vi2, vi3;}; int v[3];};   // Indices to the vector below
+    vector<Point> *vecList;     // Pointer to the vector containing the mVertices
+    float A, B, C, D;           // Plane equation coefficients
+    Box box;                    // Bounding box of the triangle
+    bool deleted;               // Flag indicating that a triangle should be considered deleted
 
     Triangle () {}
 
@@ -193,9 +196,7 @@ struct Triangle
 
     const Box &getBox() const { return box;}
 
-    const Point getNormal() const { return Point(A,B,C);}
-
-    const Point getNormal2() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3).add(Point(A,B,C));}
+    const Point getNormal() const { Point n(-A,-B,-C); return n.scale((float) 1/n.r());}
 
     const Point getCenter() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3);}
 
@@ -231,8 +232,8 @@ public:
     static bool intersects (const Box &b1, const Box &b2)
     {
         return (b1.min.x < b2.max.x) && (b1.max.x > b2.min.x) &&
-                (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
-                (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
+               (b1.min.y < b2.max.y) && (b1.max.y > b2.min.y) &&
+               (b1.min.z < b2.max.z) && (b1.max.z > b2.min.z);
     }
 
     static bool intersects (const Box &b, const Line &l)

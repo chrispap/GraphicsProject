@@ -4,14 +4,16 @@
 #include "mesh.h"
 
 const float PI=3.14159;
+const Point globRot0(30,180,0);
+const Point globTrans0(0,0,0);
 
 class GlVisuals
 {
     /* Parameters */
     float scene_size;
     float scene_dist;
-    Point globalRot;
-    Point globalTranslation;
+    Point globRot;
+    Point globTrans;
     bool perspective_proj;
 
     /* For animation */
@@ -46,10 +48,10 @@ public:
     void glPaint();
 
     void setEllapsedMillis (int milliseconds);
-    void setGlobalRotation (const Point &rotVec) {globalRot = rotVec;}
-    void setGlobalTranslation (const Point &tVec) {globalTranslation = tVec;}
-    const Point &getGlobalRotation () {return globalRot;}
-    const Point &getGlobalTranslation () {return globalTranslation;}
+    void setGlobalRotation (const Point &rotVec) {globRot = rotVec;}
+    void setGlobalTranslation (const Point &tVec) {globTrans = tVec;}
+    const Point &getGlobalRotation () {return globRot;}
+    const Point &getGlobalTranslation () {return globTrans;}
 
     void keyEvent (unsigned char key, bool up=false, int x=0, int y=0, int modif=0);
     void arrowEvent (int dir, int modif=0);

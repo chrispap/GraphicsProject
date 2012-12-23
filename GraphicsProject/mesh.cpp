@@ -20,14 +20,14 @@
 #endif
 
 /** Constructrors */
-Mesh::Mesh(string filename, bool ccw,  bool vt):
+Mesh::Mesh(string filename, bool ccw):
     mRot(0,0,0),
     mPos(0,0,0),
     mAABB(BVL_SIZE(BVL)),
     mAABBTriangles(BVL_SIZE(BVL))
 {
     clock_t t = clock();
-    loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw, vt);
+    loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw);
     createTriangleLists();
     createBoundingBoxHierarchy();
     centerAlign();
@@ -93,7 +93,7 @@ void Mesh::createNormals()
         set<int>::const_iterator _ti;
         for (_ti=mVertexTriangles[vi].begin(); _ti!=mVertexTriangles[vi].end(); ++_ti)
             normSum.add(mTriangles[*_ti].getNormal());
-        mVertexNormals[vi] = normSum;
+        mVertexNormals[vi] = normSum.scale((float) 1/3);
     }
 }
 
@@ -154,26 +154,36 @@ void Mesh::createBoundingBoxHierarchy()
             for (bvi=mAABBTriangles[parent].begin(); bvi!=mAABBTriangles[parent].end(); ++bvi) {
                 Triangle &t = mTriangles[*bvi];
                 bool left = Geom::intersects(box1, t.getBox());
+                bool right = Geom::intersects(box2, t.getBox());
 
-                mAABBTriangles[left?ch1:ch2].push_back(*bvi);
-                Point &bmin = left? min1: min2;
-                Point &bmax = left? max1: max2;
-
-                for (int vi=0; vi<3; ++vi) {
-                    Point &v = mVertices[t.v[vi]];
-                    if      (v.x > bmax.x) bmax.x = v.x;
-                    else if (v.x < bmin.x) bmin.x = v.x;
-                    if      (v.y > bmax.y) bmax.y = v.y;
-                    else if (v.y < bmin.y) bmin.y = v.y;
-                    if      (v.z > bmax.z) bmax.z = v.z;
-                    else if (v.z < bmin.z) bmin.z = v.z;
+                if (left) {
+                    mAABBTriangles[ch1].push_back(*bvi);
+                    for (int vi=0; vi<3; ++vi) {
+                        Point &v = mVertices[t.v[vi]];
+                        if      (v.x > max1.x) max1.x = v.x;
+                        else if (v.x < min1.x) min1.x = v.x;
+                        if      (v.y > max1.y) max1.y = v.y;
+                        else if (v.y < min1.y) min1.y = v.y;
+                        if      (v.z > max1.z) max1.z = v.z;
+                        else if (v.z < min1.z) min1.z = v.z;
+                    }
+                }
+                if (right) {
+                    mAABBTriangles[ch2].push_back(*bvi);
+                    for (int vi=0; vi<3; ++vi) {
+                        Point &v = mVertices[t.v[vi]];
+                        if      (v.x > max2.x) max2.x = v.x;
+                        else if (v.x < min2.x) min2.x = v.x;
+                        if      (v.y > max2.y) max2.y = v.y;
+                        else if (v.y < min2.y) min2.y = v.y;
+                        if      (v.z > max2.z) max2.z = v.z;
+                        else if (v.z < min2.z) min2.z = v.z;
+                    }
                 }
             }
 
-            Box::saturate(box1, min1, max1);
-            Box::saturate(box2, min2, max2);
-            mAABB[ch1] = Box(min1, max1);
-            mAABB[ch2] = Box(min2, max2);
+            mAABB[ch1] = Box(min1, max1).forceMax(box1);
+            mAABB[ch2] = Box(min2, max2).forceMax(box2);
         }
     }
 }
@@ -232,11 +242,11 @@ void Mesh::calculateVolume()
     }
 }
 
-void Mesh::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt)
+void Mesh::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw)
 {
     Point v;
     int f1, f2, f3;
-    char line[128], trash[16];
+    char line[128];
     FILE *objfile;
 
     if (!(objfile = fopen(filename.c_str(), "rt"))) return;
@@ -248,10 +258,9 @@ void Mesh::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector
             vertices.push_back(v);
             break;
         case 'f':
-            if (vt) sscanf(&line[1],"%d%s%d%s%d%s", &f1, trash, &f2, trash, &f3, trash);
-            else sscanf(&line[1],"%d%d%d", &f1, &f2, &f3);
+            sscanf(&line[1],"%d%d%d", &f1, &f2, &f3);
             if (ccw) triangles.push_back(Triangle(&vertices, --f1, --f3, --f2));
-            else     triangles.push_back(Triangle(&vertices, --f1, --f2, --f3));
+            else triangles.push_back(Triangle(&vertices, --f1, --f2, --f3));
             break;
         default:
             continue;
@@ -286,7 +295,7 @@ void Mesh::findCollisions( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<
         for (m1ti=0; m1ti<m1t.size(); ++m1ti) { // for all triangles of model 1
             m1tCollided=false;
 
-            for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {  // for all bounding boxes of model 2
+            for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {  // for all bounding boxes of last level of model 2
                 if (!Geom::intersects(m2.mAABB[bi], m1t[m1ti].box)) continue;
 
                 list<int>::const_iterator m2ti;
@@ -531,12 +540,15 @@ void Mesh::drawTriangleBoxes(const Colour &col)
 
 void Mesh::drawNormals(const Colour &col)
 {
+    Point n;
     glBegin(GL_LINES);
     vector<Triangle>::const_iterator ti;
     glColor3ubv(col.data);
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
-        glVertex3fv(ti->getCenter().data);
-        glVertex3fv(ti->getNormal2().data);
+        n = ti->getCenter();
+        glVertex3fv(n.data);
+        n.add(ti->getNormal());
+        glVertex3fv(n.data);
     }
 
     glEnd();

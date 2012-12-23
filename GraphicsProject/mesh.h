@@ -51,13 +51,14 @@ class Mesh
 
     /** Static utility methodos */
     static void loadTrianglesFromOBJ (string filename,
-        vector<Point> &vertices, vector<Triangle> &triangles, bool ccw, bool vt=0);
+        vector<Point> &vertices, vector<Triangle> &triangles, bool ccw);
+
     static void findCollisions ( Mesh &m1,  Mesh &m2,
         vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
 
 public:
     Mesh ();
-    Mesh (string filename, bool ccw=0, bool vt=0);
+    Mesh (string filename, bool ccw=0);
     Mesh ( Mesh &m1,  Mesh &m2, bool intersectBoth=0);
     Mesh (const Mesh &original);
    ~Mesh (void);

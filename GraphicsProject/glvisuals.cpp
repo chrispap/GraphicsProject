@@ -19,8 +19,8 @@
 using namespace std;
 
 GlVisuals::GlVisuals():
-    globalTranslation (0,0,0),
-    globalRot (30,180,0),
+    globTrans (globTrans0),
+    globRot (globRot0),
     perspective_proj (1),
     scene_size (100),
     scene_dist (scene_size*0.8),
@@ -49,11 +49,11 @@ GlVisuals::~GlVisuals()
 void GlVisuals::loadScene()
 {
     puts("\n ==== Armadillo ====");
-    armadillo.push_back (new Mesh("Model_1.obj", 0, 0));
+    armadillo.push_back (new Mesh("Model_1.obj", 0));
     armadillo[0]->setMaxSize(scene_size/2);
 
     puts("\n ==== Car ====");
-    car.push_back (new Mesh("Model_2.obj", 1, 0));
+    car.push_back (new Mesh("Model_2.obj", 1));
     car[0]->setMaxSize(scene_size/3);
 	
     intersectScene();
@@ -72,6 +72,9 @@ void GlVisuals::resetScene()
     for (int i=0; i<intersection.size(); ++i)
         delete intersection[i];
     intersection.resize(0);
+
+    globRot = globRot0;
+    globTrans = globTrans0;
 }
 
 void GlVisuals::intersectScene()
@@ -176,10 +179,10 @@ void GlVisuals::glPaint()
     glTranslatef(0,0,-scene_dist);
 
     /* Apply global transformations */
-    glTranslatef(globalTranslation.x, globalTranslation.y, globalTranslation.z);
-    glRotatef(globalRot.x, 1, 0, 0);
-    glRotatef(globalRot.y, 0, 1, 0);
-    glRotatef(globalRot.z, 0, 0, 1);
+    glTranslatef(globTrans.x, globTrans.y, globTrans.z);
+    glRotatef(globRot.x, 1, 0, 0);
+    glRotatef(globRot.y, 0, 1, 0);
+    glRotatef(globRot.z, 0, 0, 1);
     drawAxes();
     drawScene();
 }
@@ -233,6 +236,7 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
         else if (key=='s') style ^= SOLID;
         else if (key=='w') style ^= WIRE;
         else if (key=='n') style ^= NORMALS;
+        else if (key=='t') style ^= TBOXES;
         else if (key=='v') style ^= VOXELS;
         else if (key=='b') style ^= AABBH;
     }
@@ -246,7 +250,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
 
     if (sel_i<0)
     {
-        Point &t = globalTranslation;
+        Point &t = globTrans;
         float &e = ctrl? t.z : dir&2? t.x : t.y;
         e = dir&1? e - scene_size/20: e + scene_size/20;
     }
@@ -279,11 +283,11 @@ void GlVisuals::mouseMoved(int x, int y, int modif)
 
     //if (sel_i<0){
     if (!modif) {
-        globalRot.y += (dx>>1);
-        globalRot.z += (dy>>1);
+        globRot.y += (dx>>1);
+        globRot.z += (dy>>1);
     } else {
-        globalRot.y += (dx>>1);
-        globalRot.x += (dy>>1);
+        globRot.y += (dx>>1);
+        globRot.x += (dy>>1);
     }
 
     mouselastX = x;
@@ -295,6 +299,6 @@ void GlVisuals::mouseWheel(int dir, int modif)
     bool ctrl  =  modif & 0x01;
     bool shift =  modif & 0x02;
 
-    float &e = globalTranslation.z;
+    float &e = globTrans.z;
     e += scene_size/20 * (dir?-1:+1);
 }
