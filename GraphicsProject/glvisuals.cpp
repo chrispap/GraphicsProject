@@ -49,11 +49,11 @@ GlVisuals::~GlVisuals()
 void GlVisuals::loadScene()
 {
     puts("\n ==== Armadillo ====");
-    armadillo.push_back (new Mesh("Model_1.obj", 0));
+    armadillo.push_back (new Mesh("Model_1.obj", 1));
     armadillo[0]->setMaxSize(scene_size/2);
 
     puts("\n ==== Car ====");
-    car.push_back (new Mesh("Model_2.obj", 1));
+    car.push_back (new Mesh("Model_2.obj"));
     car[0]->setMaxSize(scene_size/3);
 	
     intersectScene();
@@ -61,20 +61,21 @@ void GlVisuals::loadScene()
 
 void GlVisuals::resetScene() 
 {
-    for (int i=1; i<armadillo.size(); ++i)
-        delete armadillo[i];
+    for (int i=1; i<armadillo.size(); ++i) delete armadillo[i];
     armadillo.resize(1);
+    armadillo[0]->setPosition(Point(0,0,0));
 
-    for (int i=1; i<car.size(); ++i)
-        delete car[i];
+    for (int i=1; i<car.size(); ++i) delete car[i];
     car.resize(1);
+    car[0]->setPosition(Point(0,0,0));
 
-    for (int i=0; i<intersection.size(); ++i)
-        delete intersection[i];
+    for (int i=0; i<intersection.size(); ++i) delete intersection[i];
     intersection.resize(0);
 
     globRot = globRot0;
     globTrans = globTrans0;
+
+    intersectScene();
 }
 
 void GlVisuals::intersectScene()
@@ -110,10 +111,10 @@ void GlVisuals::duplicateModel(bool shift)
 void GlVisuals::drawScene()
 {
     for (int i=0; i<armadillo.size(); ++i)
-        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==sel_i&&sel_obj==0)?AABB:0));
+        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==sel_i/*&&sel_obj==0*/)?AABB:0));
 
     for (int i=0; i<car.size(); ++i)
-        car[i]->draw (Colour(0,0x66,0x66), style | ((i==sel_i&&sel_obj==1)?AABB:0));
+        car[i]->draw (Colour(0,0x66,0x66), style | ((i==sel_i/*&&sel_obj==1*/)?AABB:0));
 
     for (int i=0; i<intersection.size(); ++i)
         intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
@@ -123,15 +124,15 @@ void GlVisuals::drawScene()
 /** OpenGL Callback Methods */
 void GlVisuals::glInitialize()
 {
-    static GLfloat ambientLight[] = { 1.0, 1.0, 1.0, 1.0 };
-    static GLfloat diffuseLight[] = { 1.0, 1.0, 1.0, 1.0 };
-    static GLfloat lightPos[] = { 0.0, 0.0, -scene_size, 0.0 };
+    static GLfloat ambientLight[] = { 1, 1, 1, 1 };
+    static GLfloat diffuseLight[] = { 1, 1, 1, 1 };
+    static GLfloat lightPos[] =     { 1, 1, 1, 0 };
 
     glLightfv( GL_LIGHT0, GL_AMBIENT, ambientLight );
     glLightfv( GL_LIGHT0, GL_DIFFUSE, diffuseLight );
     glLightfv( GL_LIGHT0, GL_POSITION, lightPos );
 
-    //glShadeModel( GL_FLAT );
+    glShadeModel( GL_SMOOTH );
     glEnable(GL_NORMALIZE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc( GL_LEQUAL );
@@ -143,7 +144,7 @@ void GlVisuals::glInitialize()
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial( GL_FRONT, GL_AMBIENT_AND_DIFFUSE );
+    glColorMaterial( GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE );
     glEnable( GL_LIGHTING );
     glEnable( GL_LIGHT0);
     glClearColor(0.2, 0.2, 0.2, 1);
@@ -266,7 +267,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
             armadillo[sel_i]->move(t);
 
         //it slows things down but never mind... 
-        //intersectScene();
+        intersectScene();
     }
 }
 

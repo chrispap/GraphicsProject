@@ -93,7 +93,7 @@ void Mesh::createNormals()
         set<int>::const_iterator _ti;
         for (_ti=mVertexTriangles[vi].begin(); _ti!=mVertexTriangles[vi].end(); ++_ti)
             normSum.add(mTriangles[*_ti].getNormal());
-        mVertexNormals[vi] = normSum.scale((float) 1/3);
+        mVertexNormals[vi] = normSum.scale(1.0f/3);
     }
 }
 
@@ -543,11 +543,13 @@ void Mesh::drawNormals(const Colour &col)
     Point n;
     glBegin(GL_LINES);
     vector<Triangle>::const_iterator ti;
-    glColor3ubv(col.data);
+   
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
         n = ti->getCenter();
+        glColor3ubv(Colour(0x00,0,0).data);
         glVertex3fv(n.data);
         n.add(ti->getNormal());
+        glColor3ubv(Colour(0xFF,0,0).data);
         glVertex3fv(n.data);
     }
 
@@ -579,7 +581,7 @@ void Mesh::draw(const Colour &col, int x)
     if (x & VOXELS) drawVoxels(Colour(0,0xFF,0));
     if (x & SOLID) drawTriangles(col, false);
     if (x & WIRE) drawTriangles(Colour(0,0,0), true);
-    if (x & NORMALS) drawNormals(Colour(0xFF,0,0));
+    if (x & NORMALS) drawNormals(col);
     if (x & AABB) drawAABB(Colour(0xA5, 0x2A, 0x2A), !(x&AABBH));
     if (x & TBOXES) drawTriangleBoxes(Colour(0xFF,0,0));
     glPopMatrix();

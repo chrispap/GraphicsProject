@@ -35,7 +35,7 @@ struct Point {
 
     bool operator!= (const Point &p) { return !(*this == p); }
 
-    float r() { return pow((x*x+y*y+z*z), (float)1/3);}
+    float r() { return pow((x*x+y*y+z*z), 1.0f/3);}
     
     void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
 
@@ -167,9 +167,7 @@ struct Triangle
     Box box;                    // Bounding box of the triangle
     bool deleted;               // Flag indicating that a triangle should be considered deleted
 
-    Triangle () {}
-
-    Triangle(vector<Point> *_vecList, int _v1, int _v2, int _v3):
+    Triangle(vector<Point> *_vecList=NULL, int _v1=0, int _v2=0, int _v3=0):
             vi1(_v1),
             vi2(_v2),
             vi3(_v3),
@@ -196,7 +194,7 @@ struct Triangle
 
     const Box &getBox() const { return box;}
 
-    const Point getNormal() const { Point n(-A,-B,-C); return n.scale((float) 1/n.r());}
+    const Point getNormal() const { Point n(A,B,C); return n.scale(1.0f/n.r());}
 
     const Point getCenter() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3);}
 
