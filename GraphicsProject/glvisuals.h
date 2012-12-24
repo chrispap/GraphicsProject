@@ -10,35 +10,38 @@ const Point globTrans0(0,0,0);
 class GlVisuals
 {
     /* Parameters */
-    float scene_size;
-    float scene_dist;
-    Point globRot;
-    Point globTrans;
-    bool perspective_proj;
-
-    /* For animation */
-    float t;
-    int milli0;
+    bool perspective_proj;              // Orthographic or perspective projection
+    float scene_size;                   // Arbitrary value used as basis for all sizes in the scene
+    float scene_dist;                   // Distance of the scene from the camera
+    Point globTrans, globRot;           // Position in the world | Local Rotation
 
     /* For UI */
-    int mouselastX;
-    int mouselastY;
-    int sel_i;
-    int sel_obj;
-    int style;
+    int mouselastX, mouselastY;         // Coords of mouse last click
+    int mouseCurrX, mouseCurrY;         // Coords of mouse movement
+    int screen_width, screen_height;    // Size of the windows in pixels
+    int sel_i, sel_obj;                 // Selected objects
+    int style;                          // The global style used for model drawing
 
+    /* For animation */
+    float t;                            // Elapsed time in seconds since the start of the animation
+    int milli0;                         // Elapsed time in millieconds since the start of the animation
+
+    /* Methods */
+    void enterPixelMode ();             // Sets the matrices of openGL for 2D pixel space rendering
+    void returnFromPixelMode ();        // Restores the normal 3D operation
+    
     /* Scene objects */
     vector<Mesh*> armadillo;
     vector<Mesh*> car;
     vector<Mesh*> intersection;
-
-    /* Methods */
-    void loadScene();
-    void drawScene();
-    void resetScene();
-	void duplicateModel(bool shift);
-    void intersectScene();
-    void drawAxes();
+    
+    /* Manipulation of scene */
+    void drawAxes ();
+    void loadScene ();
+    void drawScene ();
+    void resetScene ();
+	void duplicateObject (int obj);
+    void intersectScene ();
 
 public:
     GlVisuals();

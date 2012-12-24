@@ -63,11 +63,11 @@ void GlVisuals::resetScene()
 {
     for (int i=1; i<armadillo.size(); ++i) delete armadillo[i];
     armadillo.resize(1);
-    armadillo[0]->setPosition(Point(0,0,0));
+    armadillo[0]->setPos(Point(0,0,0));
 
     for (int i=1; i<car.size(); ++i) delete car[i];
     car.resize(1);
-    car[0]->setPosition(Point(0,0,0));
+    car[0]->setPos(Point(0,0,0));
 
     for (int i=0; i<intersection.size(); ++i) delete intersection[i];
     intersection.resize(0);
@@ -94,15 +94,15 @@ void GlVisuals::intersectScene()
     }
 }
 
-void GlVisuals::duplicateModel(bool shift)
+void GlVisuals::duplicateObject(int obj)
 {
-	vector<Mesh*> &model = shift? car: armadillo;
+	vector<Mesh*> &model = obj==0? armadillo: car;
 	
 	model.push_back (new Mesh(*model.back()));
 	Point mov = Point(model.back()->getBox().getSize());
 	mov.x=0;mov.y=0;
 	model.back()->move(mov);
-	model.back()->reduce(80);
+	model.back()->simplify(80);
 
     sel_i = model.size()-1;
 }
@@ -117,6 +117,25 @@ void GlVisuals::drawScene()
 
     for (int i=0; i<intersection.size(); ++i)
         intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
+}
+
+void GlVisuals::drawAxes()
+{
+    glBegin(GL_LINES);
+    //[X]
+    glColor3ub(0xFF, 0, 0);
+    glVertex2f(0.0,0.0);
+    glVertex2f(10.0*scene_size,0.0);
+    //[Y]
+    glColor3f(0, 0xFF, 0);
+    glVertex2f(0.0,0.0);
+    glVertex2f(0.0,10.0*scene_size);
+    //[Z]
+    glColor3f(0, 0, 0xFF);
+    glVertex2f(0.0,0.0);
+    glVertex3f(0.0,0.0,10.0*scene_size);
+
+    glEnd();
 }
 
 
@@ -187,23 +206,24 @@ void GlVisuals::glPaint()
     drawScene();
 }
 
-void GlVisuals::drawAxes()
+void GlVisuals::enterPixelMode()
 {
-    glBegin(GL_LINES);
-    //[X]
-    glColor3ub(0xFF, 0, 0);
-    glVertex2f(0.0,0.0);
-    glVertex2f(10.0*scene_size,0.0);
-    //[Y]
-    glColor3f(0, 0xFF, 0);
-    glVertex2f(0.0,0.0);
-    glVertex2f(0.0,10.0*scene_size);
-    //[Z]
-    glColor3f(0, 0, 0xFF);
-    glVertex2f(0.0,0.0);
-    glVertex3f(0.0,0.0,10.0*scene_size);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, screen_width, screen_height, 0, 10, -10);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glDisable(GL_DEPTH_TEST);
+}
 
-    glEnd();
+void GlVisuals::returnFromPixelMode()
+{
+    glEnable(GL_DEPTH_TEST);
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
 }
 
 
@@ -230,7 +250,7 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
     else {
         if (isdigit(key)) { sel_i = key-'0'-1; sel_obj = (shift?1:0);}
         else if (key=='0') sel_i = -1;
-        else if (key=='d') duplicateModel(shift);
+        else if (key=='d') duplicateObject(shift?1:0);
         else if (key=='r') resetScene();
         else if (key=='i') intersectScene();
         else if (key=='s') style ^= SOLID;

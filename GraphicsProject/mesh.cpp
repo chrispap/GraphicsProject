@@ -24,10 +24,12 @@ Mesh::Mesh(string filename, bool ccw):
     mRot(0,0,0),
     mPos(0,0,0),
     mAABB(BVL_SIZE(BVL)),
-    mAABBTriangles(BVL_SIZE(BVL))
+    mAABBTriangles(BVL_SIZE(BVL)),
+    mSphere(BVL_SIZE(BVL)),
+    mSphereTriangles(BVL_SIZE(BVL))
 {
     clock_t t = clock();
-    loadTrianglesFromOBJ(filename, mVertices, mTriangles, ccw);
+    loadObj(filename, mVertices, mTriangles, ccw);
     createTriangleLists();
     createBoundingBoxHierarchy();
     centerAlign();
@@ -42,7 +44,9 @@ Mesh::Mesh( Mesh &m1,  Mesh &m2, bool both):
     mRot(0,0,0),
     mPos(0,0,0),
     mAABB(BVL_SIZE(BVL)),
-    mAABBTriangles(BVL_SIZE(BVL))
+    mAABBTriangles(BVL_SIZE(BVL)),
+    mSphere(BVL_SIZE(BVL)),
+    mSphereTriangles(BVL_SIZE(BVL))
 {
     clock_t t = clock();
     findCollisions(m1, m2, mVertices, mTriangles, both);
@@ -55,6 +59,8 @@ Mesh::Mesh(const Mesh &copyfrom):
     mVertexNormals (copyfrom.mVertexNormals),
     mVertexTriangles (copyfrom.mVertexTriangles),
     mAABBTriangles (copyfrom.mAABBTriangles),
+    mSphere(copyfrom.mSphere),
+    mSphereTriangles(copyfrom.mSphereTriangles),
     mAABB (copyfrom.mAABB),
     mRot (copyfrom.mRot),
     mPos (copyfrom.mPos)
@@ -242,7 +248,7 @@ void Mesh::calculateVolume()
     }
 }
 
-void Mesh::loadTrianglesFromOBJ(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw)
+void Mesh::loadObj(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw)
 {
     Point v;
     int f1, f2, f3;
@@ -336,74 +342,6 @@ void Mesh::findCollisions( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<
 
 
 /** Editing */
-void Mesh::hardTranslate(const Point &p)
-{
-    vector<Point>::iterator vi;
-    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
-        vi->add(p);
-
-    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
-        mAABB[bi].add(p);
-
-    updateTriangleData();
-}
-
-void Mesh::setMaxSize(float size)
-{
-    float s = size / mAABB[0].getMaxSize();
-
-    vector<Point>::iterator vi;
-    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
-        vi->scale(s);
-
-    vector<Box>::iterator pi;
-    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
-        pi->scale(s);
-
-    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
-        mAABB[bi].scale(s);
-
-    updateTriangleData();
-}
-
-void Mesh::cornerAlign()
-{
-    vector<Point>::iterator vi;
-    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
-        vi->sub(mAABB[0].min);
-
-    vector<Box>::iterator pi;
-    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
-        pi->sub(mAABB[0].min);
-
-    Point dl(mAABB[0].min);
-    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
-        mAABB[bi].sub(dl);
-
-    updateTriangleData();
-}
-
-void Mesh::centerAlign()
-{
-    Point c2(mAABB[0].max);
-    Point c1(mAABB[0].min);
-    c2.sub(c1);
-    c2.scale(0.5);
-    c1.add(c2);
-
-    vector<Point>::iterator vi;
-    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
-        vi->sub(c1);
-
-    vector<Box>::iterator pi;
-    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
-        pi->sub(c1);
-
-    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
-        mAABB[bi].sub(c1);
-
-    updateTriangleData();
-}
 
 /** 
  * Comparator in order to sort the triangle list
@@ -411,6 +349,7 @@ void Mesh::centerAlign()
  */ 
 static vector<Triangle>* tVec;  // ptr to triangle list
 static vector<Point>* nVec;     // ptr to vertex normal list
+
 static bool NormalComparator (const int& l, const int& r)
 {
     float nl = Geom::dotprod((*nVec)[(*tVec)[l].vi1], (*nVec)[(*tVec)[l].vi2]);
@@ -418,7 +357,7 @@ static bool NormalComparator (const int& l, const int& r)
     return nl > nr;
 }
 
-void Mesh::reduce(int LoD)
+void Mesh::simplify(int percent)
 {
     clock_t t = clock();
     list<int> procList;          // List of candidate triangles for collapse
@@ -433,7 +372,7 @@ void Mesh::reduce(int LoD)
     tVec = &mTriangles; nVec = &mVertexNormals;
     procList.sort(NormalComparator);
 
-    int desiredRemovals = mTriangles.size()*(100-LoD)/100;
+    int desiredRemovals = mTriangles.size()*(100-percent)/100;
     int removals = 0;
 
     /* Do the proccessing */
@@ -511,9 +450,78 @@ void Mesh::reduce(int LoD)
     printf ("Mesh reduction took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
+void Mesh::hardTranslate(const Point &p)
+{
+    vector<Point>::iterator vi;
+    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
+        vi->add(p);
+
+    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
+        mAABB[bi].add(p);
+
+    updateTriangleData();
+}
+
+void Mesh::setMaxSize(float size)
+{
+    float s = size / mAABB[0].getMaxSize();
+
+    vector<Point>::iterator vi;
+    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
+        vi->scale(s);
+
+    vector<Box>::iterator pi;
+    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
+        pi->scale(s);
+
+    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
+        mAABB[bi].scale(s);
+
+    updateTriangleData();
+}
+
+void Mesh::cornerAlign()
+{
+    vector<Point>::iterator vi;
+    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
+        vi->sub(mAABB[0].min);
+
+    vector<Box>::iterator pi;
+    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
+        pi->sub(mAABB[0].min);
+
+    Point dl(mAABB[0].min);
+    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
+        mAABB[bi].sub(dl);
+
+    updateTriangleData();
+}
+
+void Mesh::centerAlign()
+{
+    Point c2(mAABB[0].max);
+    Point c1(mAABB[0].min);
+    c2.sub(c1);
+    c2.scale(0.5);
+    c1.add(c2);
+
+    vector<Point>::iterator vi;
+    for (vi=mVertices.begin(); vi!= mVertices.end(); ++vi)
+        vi->sub(c1);
+
+    vector<Box>::iterator pi;
+    for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi)
+        pi->sub(c1);
+
+    for (int bi=0; bi<BVL_SIZE(BVL); ++bi)
+        mAABB[bi].sub(c1);
+
+    updateTriangleData();
+}
+
 
 /** Drawing */
-void Mesh::drawVoxels(const Colour &col)
+void Mesh::drawVoxels(Colour &col)
 {
     vector<Box>::const_iterator pi;
     for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi) {
@@ -522,7 +530,7 @@ void Mesh::drawVoxels(const Colour &col)
 
 }
 
-void Mesh::drawTriangles(const Colour &col, bool wire)
+void Mesh::drawTriangles(Colour &col, bool wire)
 {
     glPolygonMode(GL_FRONT_AND_BACK, wire? GL_LINE: GL_FILL);
     glBegin(GL_TRIANGLES);
@@ -540,14 +548,14 @@ void Mesh::drawTriangles(const Colour &col, bool wire)
     glEnd();
 }
 
-void Mesh::drawTriangleBoxes(const Colour &col)
+void Mesh::drawTriangleBoxes(Colour &col)
 {
     vector<Triangle>::const_iterator ti;
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti)
         ti->getBox().draw(col, 0);
 }
 
-void Mesh::drawNormals(const Colour &col)
+void Mesh::drawNormals(Colour &col)
 {
     Point n;
     glBegin(GL_LINES);
@@ -566,13 +574,13 @@ void Mesh::drawNormals(const Colour &col)
     return;
 }
 
-void Mesh::drawAABB(const Colour &col, bool skipHier)
+void Mesh::drawAABB(Colour &col, bool hier)
 {
     /* Draw only the main box and the
      * leaves of the tree (last level of hierarchy */
     mAABB[0].draw(col, 0);
 
-    if (!skipHier) {
+    if (hier) {
         for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
             mAABB[bi].draw(col, 0);
             mAABB[bi].draw(col, 0x50);
@@ -580,7 +588,7 @@ void Mesh::drawAABB(const Colour &col, bool skipHier)
     }
 }
 
-void Mesh::draw(const Colour &col, int x)
+void Mesh::draw(Colour &col, int x)
 {
     glPushMatrix();
     glTranslatef(mPos.x, mPos.y, mPos.z);
@@ -591,7 +599,7 @@ void Mesh::draw(const Colour &col, int x)
     if (x & SOLID) drawTriangles(col, false);
     if (x & WIRE) drawTriangles(Colour(0,0,0), true);
     if (x & NORMALS) drawNormals(col);
-    if (x & AABB) drawAABB(Colour(0xA5, 0x2A, 0x2A), !(x&AABBH));
+    if (x & AABB) drawAABB(Colour(0xA5, 0x2A, 0x2A), x&AABBH);
     if (x & TBOXES) drawTriangleBoxes(Colour(0xFF,0,0));
     glPopMatrix();
 }

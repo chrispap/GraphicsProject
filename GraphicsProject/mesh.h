@@ -17,11 +17,11 @@
 #include <GL/glu.h>
 #endif
 
-#define BVL_SIZE(L) ((1<<((L)+1))-1)
-#define BVL 3
-#define VDIV 50
-
 using namespace std;
+
+#define BVL_SIZE(L) ((1<<((L)+1))-1)    // MACRO giving the total number of nodes in a hierarchy tree with L levels
+#define BVL 3                           // Number of levels of hierarchy of bounding volumes
+#define VDIV 50                         // Number of divisions for volume scanning
 
 class Mesh
 {
@@ -30,55 +30,64 @@ class Mesh
     vector<Triangle> mTriangles;        // Triangle list | contains indices to the Vertex list
     vector<Point> mVertexNormals;       // Normals per vertex
     vector<set<int> > mVertexTriangles; // List of lists of the triangles that are connected to each vertex
-    vector<list<int> > mAABBTriangles;  // Triangles of each hierarchy level
+    vector<list<int> > mAABBTriangles;  // Triangles of each AABB hierarchy level
+    vector<list<int> > mSphereTriangles;// Triangles of each Sphere hierarchy level
     vector<Box> mAABB;                  // The bounding box hierarchy of the model
+    vector<Sphere> mSphere;             // The bounding sphere hierarchy of the model
     vector<Box> mVoxels;                // The voxels that are generated during the volume calculation
     float coverage[BVL+1];              // Bounding box coverage of each hierarchy level
     Point mRot;                         // Model rotation around its local axis
     Point mPos;                         // Model position in the scene
 
-    void createBoundingBoxHierarchy ();
-    void createTriangleLists ();
-    void createNormals ();
-    void updateTriangleData ();
-    void calculateVolume ();
-    void hardTranslate(const Point &p);
-    void drawTriangles (const Colour &col, bool wire=0);
-    void drawTriangleBoxes (const Colour &col);
-    void drawNormals (const Colour &col);
-    void drawAABB (const Colour &col, bool skipHier=false);
-    void drawVoxels (const Colour &col);
+    /** Private methods */
+    void createTriangleLists ();        // Create lists with each vertex's triangles
+    void createBoundingBoxHierarchy (); // Creates BVL levels of hierarchy by subdividing the boxes of each level
+    void updateTriangleData ();         // Recalculates the plane equations of the triangles
+    void calculateVolume ();            // Estimate the volume of the mesh by scanning all the bounding box
+    void cornerAlign ();                // Align the mesh to the corner of each local axis
+    void centerAlign ();                // Align the mesh to the center of each local axis
+    void createNormals ();              // Create a normal for each vertex
+    void hardTranslate (const Point &p);// Translation by adding the displacement to the vertices
+    
+    /** Drawing methods */
+    void drawTriangles (Colour &col, bool wire=0);
+    void drawAABB (Colour &col, bool hier=0);
+    void drawTriangleBoxes (Colour &col);
+    void drawNormals (Colour &col);
+    void drawVoxels (Colour &col);
 
-    /** Static utility methodos */
-    static void loadTrianglesFromOBJ (string filename,
-        vector<Point> &vertices, vector<Triangle> &triangles, bool ccw);
-
-    static void findCollisions ( Mesh &m1,  Mesh &m2,
-        vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
+    /** Static methods */
+    static void loadObj (string filename,   // Populate vertex | triangle lists from file
+        vector<Point> &vertices, vector<Triangle> &triangles, bool ccw=0);
+                                        
+    static void findCollisions ( Mesh &m1,  Mesh &m2,   // Populate vertex | triangle lists with collisions of two other meshes */
+        vector<Point> &vertices, vector<Triangle> &triangles, bool both=0); 
 
 public:
     Mesh ();
-    Mesh (string filename, bool ccw=0);
-    Mesh ( Mesh &m1,  Mesh &m2, bool intersectBoth=0);
-    Mesh (const Mesh &original);
-   ~Mesh (void);
+    Mesh (string filename, bool ccw=0);         // Constructor from .obj file
+    Mesh (Mesh &m1,  Mesh &m2, bool both=0);    // Constructor from intersection of other models
+    Mesh (const Mesh &original);                // Copy constructor
+   ~Mesh (void);                                // Destructor
 
     /** API */
-    void reduce (int LoD=1);
-    void draw (const Colour &col, int x);
-    void cornerAlign ();
-    void centerAlign ();
-    void setMaxSize (float size);
-    void move (const Point &p) { mPos.add(p);}
-    void rotate (const Point &p) { mRot.add(p);}
-    void setPosition (const Point &p) { mPos = p;}
-    void setRotation (const Point &p) {mRot = p;}
-    const Box &getBox () const { return mAABB[0];}
-    const Point &getPosition() const { return mPos;}
-    const Point &getLocalRotation() const { return mRot;}
-    float geCoverage(int level) const { return coverage[level];}
+    void draw (Colour &col, int style);         // Draw the mesh with the specified style
+    void simplify (int percent=1);              // Try to reduce the number of faces preserving the shape
+    void setMaxSize (float size);               // Set the meshes size according to the max size of three (x|y|z)
+    void move (Point &p) { mPos.add(p);}        // Move the mesh in the world.
+    void rotate (Point &p) { mRot.add(p);}      // Rotate mesh around its local axis
+    void setPos (Point &p) { mPos = p;}         // Set the position of the mesh
+    void setRot (Point &p) {mRot = p;}          // Set the rotation of the mesh
+    const Box &getBox () { return mAABB[0];}    // Get the bounding box
+    const Point &getPos() { return mPos;}       // Get the position
+    const Point &getLocalRot() { return mRot;}  // Get the rotation
+    float geCoverage(int l){return coverage[l];}// Get the percentage of coverage for a specific level of the box hierarchy
 };
 
+/**
+ * Enum used to controll what to draw 
+ * in a call of draw() 
+ */
 enum Style {
     SOLID   = (1<<0),
     WIRE    = (1<<1),

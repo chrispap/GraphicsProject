@@ -57,6 +57,16 @@ struct Line
     ~Line(void) {}
 };
 
+struct Sphere
+{
+    Point center;
+    float rad;
+
+    Sphere () {}
+
+    Sphere(const Point &c, float r): center(c), rad(r) {}
+};
+
 struct Box
 {
     Point min, max;
@@ -237,7 +247,7 @@ public:
     static bool intersects (const Box &b, const Line &l)
     {
         /* local variables declare static in order to
-           reduce the storage required for recursion */
+           simplify the storage required for recursion */
         static char c1, c2, bit, axis;
         static float tdl;
         static Point dl, i;
