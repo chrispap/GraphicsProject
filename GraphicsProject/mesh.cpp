@@ -147,9 +147,24 @@ void Mesh::createBoundingBoxHierarchy()
             mAABBTriangles[ch2].clear();
             Point &min = mAABB[parent].min;
             Point &max = mAABB[parent].max;
-            float limX = (max.x + min.x)/2;
-            Box box1 (min, Point(limX, max.y, max.z));
-            Box box2 (Point(limX, min.y, min.z), max);
+            int dim;
+            Box box1, box2;
+            if (mAABB[parent].getXSize() > mAABB[parent].getYSize())
+                 dim = (mAABB[parent].getXSize() > mAABB[parent].getZSize())? 0 : 1;
+            else dim = (mAABB[parent].getYSize() > mAABB[parent].getZSize())? 1 : 2;
+            float lim = (max.data[dim] + min.data[dim])/2;
+
+            if (dim==0) {
+                box1 = Box(min, Point(lim, max.y, max.z));
+                box2 = Box(Point(lim, min.y, min.z), max);
+            } else if (dim==1) {
+                box1 = Box(min, Point(max.x, lim, max.z));
+                box2 = Box(Point(min.x, lim, min.z), max);
+            } else {
+                box1 = Box(min, Point(max.x, max.y, lim));
+                box2 = Box(Point(min.x, min.y, lim), max);
+            }
+
             Point min1,max1,min2,max2;
             min1.x = min1.y = min1.z = FLT_MAX;
             max1.x = max1.y = max1.z = FLT_MIN;

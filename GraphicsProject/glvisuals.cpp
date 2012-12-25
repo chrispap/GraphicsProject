@@ -23,7 +23,7 @@ GlVisuals::GlVisuals():
     globRot (globRot0),
     perspective_proj (1),
     scene_size (100),
-    scene_dist (scene_size*0.8),
+    scene_dist (scene_size*0.5),
     sel_i (-1),
     sel_obj (0),
     milli0 (-1),
@@ -287,7 +287,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
             armadillo[sel_i]->move(t);
 
         //it slows things down but never mind...
-        //intersectScene();
+        intersectScene();
     }
 }
 
