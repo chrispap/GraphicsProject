@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <list>
+#include <math.h>
 
 #ifndef QT_CORE_LIB
 #ifdef __linux__

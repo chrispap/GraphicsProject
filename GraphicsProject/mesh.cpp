@@ -388,8 +388,8 @@ void Mesh::simplify(int percent)
     pli = procList.begin();
     for (ti=0; ti < mTriangles.size(); ++ti)
         procList.insert(pli, ti);
-    
-    tVec = &mTriangles; 
+
+    tVec = &mTriangles;
     nVec = &mVertexNormals;
     sVec = &mVertexTriangles;
     procList.sort(NormalComparator);
@@ -399,7 +399,7 @@ void Mesh::simplify(int percent)
 
     /* Do the proccessing */
     for (pli = procList.begin(); removals < desiredRemovals && pli != procList.end(); ++pli) {
-        
+
         /*0. Pick the next triangle for removal */
         if (mTriangles[*pli].deleted) continue;
         else ti = *pli;
@@ -540,7 +540,7 @@ void Mesh::centerAlign()
 
 
 /** Drawing */
-void Mesh::drawVoxels(Colour &col)
+void Mesh::drawVoxels(Colour col)
 {
     vector<Box>::const_iterator pi;
     for(pi=mVoxels.begin(); pi!=mVoxels.end(); ++pi) {
@@ -549,7 +549,7 @@ void Mesh::drawVoxels(Colour &col)
 
 }
 
-void Mesh::drawTriangles(Colour &col, bool wire)
+void Mesh::drawTriangles(Colour col, bool wire)
 {
     glPolygonMode(GL_FRONT_AND_BACK, wire? GL_LINE: GL_FILL);
     glBegin(GL_TRIANGLES);
@@ -567,19 +567,19 @@ void Mesh::drawTriangles(Colour &col, bool wire)
     glEnd();
 }
 
-void Mesh::drawTriangleBoxes(Colour &col)
+void Mesh::drawTriangleBoxes(Colour col)
 {
     vector<Triangle>::const_iterator ti;
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti)
         ti->getBox().draw(col, 0);
 }
 
-void Mesh::drawNormals(Colour &col)
+void Mesh::drawNormals(Colour col)
 {
     Point n;
     glBegin(GL_LINES);
     vector<Triangle>::const_iterator ti;
-   
+
     for(ti=mTriangles.begin(); ti!=mTriangles.end(); ++ti) {
         n = ti->getCenter();
         glColor3ubv(Colour(0x00,0,0).data);
@@ -593,7 +593,7 @@ void Mesh::drawNormals(Colour &col)
     return;
 }
 
-void Mesh::drawAABB(Colour &col, bool hier)
+void Mesh::drawAABB(Colour col, bool hier)
 {
     /* Draw only the main box and the
      * leaves of the tree (last level of hierarchy */
@@ -607,7 +607,7 @@ void Mesh::drawAABB(Colour &col, bool hier)
     }
 }
 
-void Mesh::draw(Colour &col, int x)
+void Mesh::draw(Colour col, int x)
 {
     glPushMatrix();
     glTranslatef(mPos.x, mPos.y, mPos.z);

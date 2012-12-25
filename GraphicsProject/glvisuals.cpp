@@ -55,19 +55,21 @@ void GlVisuals::loadScene()
     puts("\n ==== Car ====");
     car.push_back (new Mesh("Model_2.obj"));
     car[0]->setMaxSize(scene_size/3);
-	
+
     //intersectScene();
 }
 
-void GlVisuals::resetScene() 
+void GlVisuals::resetScene()
 {
+    Point zero(0,0,0);
+
     for (int i=1; i<armadillo.size(); ++i) delete armadillo[i];
     armadillo.resize(1);
-    armadillo[0]->setPos(Point(0,0,0));
+    armadillo[0]->setPos(zero);
 
     for (int i=1; i<car.size(); ++i) delete car[i];
     car.resize(1);
-    car[0]->setPos(Point(0,0,0));
+    car[0]->setPos(zero);
 
     for (int i=0; i<intersection.size(); ++i) delete intersection[i];
     intersection.resize(0);
@@ -96,14 +98,14 @@ void GlVisuals::intersectScene()
 
 void GlVisuals::duplicateObject(int obj)
 {
-	vector<Mesh*> &model = obj==0? armadillo: car;
-	
-	model.push_back (new Mesh(*model.back()));
-	Point mov = Point(model.back()->getBox().getSize());
-	mov.x=0;mov.y=0;
-	model.back()->move(mov);
-	sel_i = model.size()-1;
-    model.back()->simplify(1);   
+    vector<Mesh*> &model = obj==0? armadillo: car;
+
+    //~ model.push_back (new Mesh(*model.back()));
+    //~ Point mov = Point(model.back()->getBox().getSize());
+    //~ mov.x=0;mov.y=0;
+    //~ model.back()->move(mov);
+    //~ sel_i = model.size()-1;
+    model.back()->simplify(1);
 }
 
 void GlVisuals::drawScene()
@@ -238,9 +240,9 @@ void GlVisuals::setEllapsedMillis(int millis)
 
 void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
 {
-	bool ctrl  =  modif & 0x01;
-	bool shift =  modif & 0x02;
-	
+    bool ctrl  =  modif & 0x01;
+    bool shift =  modif & 0x02;
+
     key = tolower(key);
 
     if (up) {
@@ -284,7 +286,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
         else if (!shift && sel_i<armadillo.size())
             armadillo[sel_i]->move(t);
 
-        //it slows things down but never mind... 
+        //it slows things down but never mind...
         //intersectScene();
     }
 }

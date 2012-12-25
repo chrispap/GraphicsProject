@@ -48,20 +48,20 @@ class Mesh
     void centerAlign ();                // Align the mesh to the center of each local axis
     void createNormals ();              // Create a normal for each vertex
     void hardTranslate (const Point &p);// Translation by adding the displacement to the vertices
-    
+
     /** Drawing methods */
-    void drawTriangles (Colour &col, bool wire=0);
-    void drawAABB (Colour &col, bool hier=0);
-    void drawTriangleBoxes (Colour &col);
-    void drawNormals (Colour &col);
-    void drawVoxels (Colour &col);
+    void drawTriangles (Colour col, bool wire=0);
+    void drawAABB (Colour col, bool hier=0);
+    void drawTriangleBoxes (Colour col);
+    void drawNormals (Colour col);
+    void drawVoxels (Colour col);
 
     /** Static methods */
     static void loadObj (string filename,   // Populate vertex | triangle lists from file
         vector<Point> &vertices, vector<Triangle> &triangles, bool ccw=0);
-                                        
+
     static void findCollisions ( Mesh &m1,  Mesh &m2,   // Populate vertex | triangle lists with collisions of two other meshes */
-        vector<Point> &vertices, vector<Triangle> &triangles, bool both=0); 
+        vector<Point> &vertices, vector<Triangle> &triangles, bool both=0);
 
 public:
     Mesh ();
@@ -71,7 +71,7 @@ public:
    ~Mesh (void);                                // Destructor
 
     /** API */
-    void draw (Colour &col, int style);         // Draw the mesh with the specified style
+    void draw (Colour col, int style);         // Draw the mesh with the specified style
     void simplify (int percent=1);              // Try to reduce the number of faces preserving the shape
     void setMaxSize (float size);               // Set the meshes size according to the max size of three (x|y|z)
     void move (Point &p) { mPos.add(p);}        // Move the mesh in the world.
@@ -85,8 +85,8 @@ public:
 };
 
 /**
- * Enum used to controll what to draw 
- * in a call of draw() 
+ * Enum used to controll what to draw
+ * in a call of draw()
  */
 enum Style {
     SOLID   = (1<<0),
