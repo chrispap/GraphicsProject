@@ -56,7 +56,7 @@ void GlVisuals::loadScene()
     car.push_back (new Mesh("Model_2.obj"));
     car[0]->setMaxSize(scene_size/3);
 	
-    intersectScene();
+    //intersectScene();
 }
 
 void GlVisuals::resetScene() 
@@ -102,9 +102,8 @@ void GlVisuals::duplicateObject(int obj)
 	Point mov = Point(model.back()->getBox().getSize());
 	mov.x=0;mov.y=0;
 	model.back()->move(mov);
-	model.back()->simplify(80);
-
-    sel_i = model.size()-1;
+	sel_i = model.size()-1;
+    model.back()->simplify(1);   
 }
 
 void GlVisuals::drawScene()

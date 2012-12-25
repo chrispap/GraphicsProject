@@ -343,18 +343,38 @@ void Mesh::findCollisions( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<
 
 /** Editing */
 
-/** 
- * Comparator in order to sort the triangle list
- * based on how parallel the normals in two vertices are 
- */ 
-static vector<Triangle>* tVec;  // ptr to triangle list
-static vector<Point>* nVec;     // ptr to vertex normal list
+static vector<Triangle> * tVec;
+static vector<Point>    * nVec;
+static vector<set<int> >* sVec;
 
 static bool NormalComparator (const int& l, const int& r)
 {
-    float nl = Geom::dotprod((*nVec)[(*tVec)[l].vi1], (*nVec)[(*tVec)[l].vi2]);
-    float nr = Geom::dotprod((*nVec)[(*tVec)[r].vi1], (*nVec)[(*tVec)[r].vi2]);
-    return nl > nr;
+    int compTrian[2]= {l, r};   // triangles for compare
+    float sum;                  // sum the dot products
+    float nprod[2];             // The mean dot product of each triangle's second vertex
+    Point n1,n2;                // Temp for normals
+    set<int>::iterator tli;     // iterator for vertex's triangles
+
+    vector<Triangle> &trian = *tVec;
+    vector<Point> &norm     = *nVec;
+    vector<set<int> > &vtl  = *sVec;
+
+    for (int i=0; i<2; i++)
+    {
+        sum = 0;
+        tli = vtl[trian[compTrian[i]].vi2].begin();
+        n2  = trian[*tli].getNormal();
+        ++tli;
+        while (tli != vtl[trian[compTrian[i]].vi2].end()) {
+            n1 = n2;
+            n2= trian[*tli].getNormal();
+            sum += Geom::dotprod(n1, n2);
+            ++tli;
+        }
+        nprod[i] = sum / vtl[trian[compTrian[i]].vi2].size();
+    }
+
+    return nprod[0] > nprod[1];
 }
 
 void Mesh::simplify(int percent)
@@ -369,7 +389,9 @@ void Mesh::simplify(int percent)
     for (ti=0; ti < mTriangles.size(); ++ti)
         procList.insert(pli, ti);
     
-    tVec = &mTriangles; nVec = &mVertexNormals;
+    tVec = &mTriangles; 
+    nVec = &mVertexNormals;
+    sVec = &mVertexTriangles;
     procList.sort(NormalComparator);
 
     int desiredRemovals = mTriangles.size()*(100-percent)/100;
@@ -377,11 +399,10 @@ void Mesh::simplify(int percent)
 
     /* Do the proccessing */
     for (pli = procList.begin(); removals < desiredRemovals && pli != procList.end(); ++pli) {
-        ti = *pli;
-
-        if (mTriangles[ti].deleted){
-            procList.remove(ti); continue;
-        }
+        
+        /*0. Pick the next triangle for removal */
+        if (mTriangles[*pli].deleted) continue;
+        else ti = *pli;
 
         /*1. Pick two vertices that will form the collapsing edge */
         int vk = mTriangles[ti].vi1;                // Vertex we keep of the collapsing edge
@@ -400,9 +421,7 @@ void Mesh::simplify(int percent)
             else { if (*vxLi == ti) { ++vxLi; ++vkLi; }
                 else { tx = *vxLi; break; }}
         }
-
-        if (tx==-1 || mTriangles[tx].deleted)
-            continue;
+        if (tx==-1 || mTriangles[tx].deleted) continue;
 
         /*3. Delete the triangles of the collapsing edge */
         mTriangles[ti].deleted = 1;
