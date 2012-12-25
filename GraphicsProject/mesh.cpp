@@ -362,10 +362,10 @@ static bool NormalComparator (const int& l, const int& r)
     for (int i=0; i<2; i++)
     {
         sum = 0;
-        tli = vtl[trian[compTrian[i]].vi2].begin();
+        tli = vtl[trian[compTrian[i]].vi1].begin();
         n2  = trian[*tli].getNormal();
         ++tli;
-        while (tli != vtl[trian[compTrian[i]].vi2].end()) {
+        while (tli != vtl[trian[compTrian[i]].vi1].end()) {
             n1 = n2;
             n2= trian[*tli].getNormal();
             sum += Geom::dotprod(n1, n2);
