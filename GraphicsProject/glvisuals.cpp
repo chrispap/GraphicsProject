@@ -106,15 +106,16 @@ void GlVisuals::duplicateObject(int obj)
     //~ model.back()->move(mov);
     //~ sel_i = model.size()-1;
     model.back()->simplify(1);
+    intersectScene();
 }
 
 void GlVisuals::drawScene()
 {
     for (int i=0; i<armadillo.size(); ++i)
-        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==sel_i/*&&sel_obj==0*/)?AABB:0));
+        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==sel_i/*&&sel_obj==0*/)?SPHERE:0));
 
     for (int i=0; i<car.size(); ++i)
-        car[i]->draw (Colour(0,0x66,0x66), style | ((i==sel_i/*&&sel_obj==1*/)?AABB:0));
+        car[i]->draw (Colour(0,0x66,0x66), style | ((i==sel_i/*&&sel_obj==1*/)?SPHERE:0));
 
     for (int i=0; i<intersection.size(); ++i)
         intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
@@ -259,7 +260,7 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
         else if (key=='n') style ^= NORMALS;
         else if (key=='t') style ^= TBOXES;
         else if (key=='v') style ^= VOXELS;
-        else if (key=='b') style ^= AABBH;
+        else if (key=='b') style ^= HIER;
     }
 
 }

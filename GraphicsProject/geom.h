@@ -37,7 +37,7 @@ struct Point {
     bool operator!= (const Point &p) { return !(*this == p); }
 
     float r() { return pow((x*x+y*y+z*z), 1.0f/3);}
-    
+
     void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
 
     Point &add(const Point &v) { x += v.x; y += v.y; z += v.z; return *this;}
@@ -56,16 +56,6 @@ struct Line
     Line (const Point &_start, const Point &_end): start(_start), end(_end) {}
 
     ~Line(void) {}
-};
-
-struct Sphere
-{
-    Point center;
-    float rad;
-
-    Sphere () {}
-
-    Sphere(const Point &c, float r): center(c), rad(r) {}
 };
 
 struct Box
@@ -167,6 +157,39 @@ struct Box
         glVertex3fv(p[5].data);
         glVertex3fv(p[4].data);
         glEnd();
+    }
+};
+
+struct Sphere
+{
+    Point center;
+    float rad;
+
+    Sphere () {}
+
+    Sphere(const Point &c, float r): center(c), rad(r) {}
+
+    Sphere &add(const Point &v) { center.add(v); }
+
+    Sphere &sub(const Point &v) { center.sub(v); }
+
+    Sphere &scale (const float s) { center.scale(s); rad*=s;}
+
+    void draw(const Colour &col, unsigned char a=0) const
+    {
+        glPushMatrix();
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glTranslatef(center.x, center.y, center.z);
+
+        if (a) {
+            glColor4ub(col.r, col.g, col.b, a);
+            glutSolidSphere(rad, 32, 32);
+        } else {
+            glColor3ubv(col.data);
+            glutWireSphere(rad, 32, 32);
+        }
+
+        glPopMatrix();
     }
 };
 
