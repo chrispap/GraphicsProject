@@ -169,11 +169,11 @@ struct Sphere
 
     Sphere(const Point &c, float r): center(c), rad(r) {}
 
-    Sphere &add(const Point &v) { center.add(v); }
+    Sphere &add(const Point &v) { center.add(v); return *this;}
 
-    Sphere &sub(const Point &v) { center.sub(v); }
+    Sphere &sub(const Point &v) { center.sub(v); return *this;}
 
-    Sphere &scale (const float s) { center.scale(s); rad*=s;}
+    Sphere &scale (const float s) { center.scale(s); rad*=s; return *this;}
 
     void draw(const Colour &col, unsigned char a=0) const
     {
