@@ -3,9 +3,8 @@
 
 #include "mesh.h"
 
-const float PI=3.14159;
-const Point globRot0(30,180,0);
-const Point globTrans0(0,0,0);
+static const Point globRot0(30,180,0);
+static const Point globTrans0(0,0,0);
 
 class GlVisuals
 {
@@ -29,18 +28,18 @@ class GlVisuals
     /* Methods */
     void enterPixelMode ();             // Sets the matrices of openGL for 2D pixel space rendering
     void returnFromPixelMode ();        // Restores the normal 3D operation
-    
+
     /* Scene objects */
     vector<Mesh*> armadillo;
     vector<Mesh*> car;
     vector<Mesh*> intersection;
-    
+
     /* Manipulation of scene */
     void drawAxes ();
     void loadScene ();
     void drawScene ();
     void resetScene ();
-	void duplicateObject (int obj);
+    void duplicateObject (int obj);
     void intersectScene ();
 
 public:

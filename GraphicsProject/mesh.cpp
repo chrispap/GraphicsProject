@@ -37,7 +37,7 @@ Mesh::Mesh(string filename, bool ccw):
     calculateVolume();
     printf ("Mesh loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
     for (int blevel=0; blevel<=BVL; blevel++)
-        printf("Coverage Level: %d - AABB %4.2f%%, Sphere %4.2f%% \n", blevel, 100*AABBCover[blevel], 100*SphereCover[blevel]);
+        printf("Coverage Level %d: AABB %4.2f%%, Sphere %4.2f%% \n", blevel, 100*AABBCover[blevel], 100*sphereCover[blevel]);
 
 }
 
@@ -51,7 +51,7 @@ Mesh::Mesh( Mesh &m1,  Mesh &m2, bool both):
 {
     clock_t t = clock();
     intersect(m1, m2, mVertices, mTriangles, both);
-    printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+    //printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Mesh::Mesh(const Mesh &copyfrom):
@@ -202,6 +202,11 @@ void Mesh::createBoundingSphereHierarchy()
     set<int> setL, setR;
     mSphere[0] = Sphere(mVertices, setL);
 
+    /*Construct a triangle list with all the triangles */
+    mSphereTriangles[0].clear();
+    for (int ti=0; ti < mTriangles.size(); ++ti)
+        mSphereTriangles[0].push_back(ti);
+
     for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {
         for (int div=0; div < (1<<bvlevel); ++div) {
             /* Find parent's, children's indices */
@@ -213,19 +218,25 @@ void Mesh::createBoundingSphereHierarchy()
             mSphereTriangles[chL].clear();
             mSphereTriangles[chR].clear();
             int dim=0;
-            float lim = mSphere[parent].center.data[dim];
-            list<int>::const_iterator bvi;
-            for (bvi=mAABBTriangles[parent].begin(); bvi!=mAABBTriangles[parent].end(); ++bvi) {
-                Triangle &t = mTriangles[*bvi];
-                if (mVertices[t.vi1].data[dim] < lim)
-                    setL.insert(t.vi1);
-                else
-                    setR.insert(t.vi1);
+            float lim = mSphere[parent].center.x;
 
+            list<int>::const_iterator bvi;
+            for (bvi=mSphereTriangles[parent].begin(); bvi!=mSphereTriangles[parent].end(); ++bvi) {
+                Triangle &t = mTriangles[*bvi];
+                if (mVertices[t.vi1].x < lim || mVertices[t.vi2].x < lim || mVertices[t.vi3].x < lim) {
+                    setL.insert(t.vi1);setL.insert(t.vi2);setL.insert(t.vi3);
+                    mSphereTriangles[chL].push_back(*bvi);
+                }
+                else {
+                    setR.insert(t.vi1);setR.insert(t.vi2);setR.insert(t.vi3);
+                    mSphereTriangles[chR].push_back(*bvi);
+                }
             }
 
-            mSphere[chL] = Sphere(mVertices, setL);
-            mSphere[chR] = Sphere(mVertices, setR);
+            if (setL.size()) mSphere[chL] = Sphere(mVertices, setL);
+            else mSphere[chL] = Sphere();
+            if (setR.size()) mSphere[chR] = Sphere(mVertices, setR);
+            else mSphere[chR] = Sphere();
         }
     }
 }
@@ -235,7 +246,7 @@ void Mesh::calculateVolume()
     const float dl = mAABB[0].getXSize()/VDIV;
     if (dl<0.00001) return;
 
-    unsigned long int voxelCount=0, voxelTotal=0, intersectionsCount=0, xi=0;
+    unsigned long int voxelInside=0, voxelTotal=0, intersectionsCount=0, xi=0;
 
     for (float x=mAABB[0].min.x+dl/2; x<mAABB[0].max.x; x+=dl) {
         printf("[%c] [%-2d%%]", "|/-\\"[xi++%4], (int)(100*((x-mAABB[0].min.x)/mAABB[0].getXSize())));fflush(stdout);
@@ -250,8 +261,8 @@ void Mesh::calculateVolume()
                 /* Count intersecting triangles */
                 intersectionsCount=0;
                 list<int>::const_iterator ti;
-                for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
-                    if (!Geom::intersects(mAABB[bi], ray)) continue;
+                for (int bi=0; bi<1; ++bi) {
+                    //if (!Geom::intersects(mAABB[bi], ray)) continue;
                     for (ti = mAABBTriangles[bi].begin(); ti!=mAABBTriangles[bi].end(); ++ti) {
                         Triangle &t = mTriangles[*ti];
                         if ((Geom::mkcode(ray.start, t.getBox()) & Geom::mkcode(ray.end, t.getBox()))) continue;
@@ -262,7 +273,7 @@ void Mesh::calculateVolume()
                 /* For odd number of triangles count this voxel to the total volume */
                 if (intersectionsCount%2 == 1){
                     mVoxels.push_back( Box (Point(x-dl/2.2, y-dl/2.2, z-dl/2.2), Point(x+dl/2.2, y+dl/2.2, z+dl/2.2)));
-                    ++voxelCount;
+                    ++voxelInside;
                 }
                 ++voxelTotal;
             }
@@ -270,17 +281,20 @@ void Mesh::calculateVolume()
         printf ("\r");
     }
     printf("             \r");
+    printf("Inside %ld / Total %ld \n", voxelInside, voxelTotal);
 
     /* Calculate the coverage for every level */
-    float fullVol = mAABB[0].getVolume();
-    AABBCover[0] = ((float)voxelCount)/voxelTotal;
-    float boundingVol;
+    float objVol = (mAABB[0].getVolume()*voxelInside)/voxelTotal;
+    float bVol, sVol;
 
-    for (int bvlevel=1; bvlevel<=BVL; ++bvlevel) {
-        boundingVol=0;
-        for (int bi=BVL_SIZE(bvlevel-1); bi< BVL_SIZE(bvlevel); ++bi)
-            boundingVol += mAABB[bi].getVolume();
-        AABBCover[bvlevel] = (AABBCover[0]*fullVol)/boundingVol;
+    for (int bvlevel=0; bvlevel<=BVL; ++bvlevel) {
+        bVol=sVol=0;
+        for (int bi=BVL_SIZE(bvlevel-1); bi< BVL_SIZE(bvlevel); ++bi) {
+            bVol += mAABB[bi].getVolume();
+            sVol += mSphere[bi].getVolume();
+        }
+        AABBCover[bvlevel] = objVol/bVol;
+        sphereCover[bvlevel] = objVol/sVol;
     }
 }
 
@@ -638,9 +652,10 @@ void Mesh::drawSphere(Colour col, bool hier)
 {
     /* Draw only the main box and the
      * leaves of the tree (last level of hierarchy */
-    mSphere[0].draw(col, 0);
-
-    if (hier) {
+    if (!hier) {
+        mSphere[0].draw(col, 0);
+    }
+    else {
         for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
             mSphere[bi].draw(col, 0x0);
         }
@@ -651,9 +666,10 @@ void Mesh::drawAABB(Colour col, bool hier)
 {
     /* Draw only the main box and the
      * leaves of the tree (last level of hierarchy */
-    mAABB[0].draw(col, 0);
-
-    if (hier) {
+    if (!hier) {
+        mAABB[0].draw(col, 0);
+    }
+    else {
         for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
             mAABB[bi].draw(col, 0);
             mAABB[bi].draw(col, 0x50);

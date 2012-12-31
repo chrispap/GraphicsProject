@@ -52,9 +52,9 @@ void GlVisuals::loadScene()
     armadillo.push_back (new Mesh("Model_1.obj", 1));
     armadillo[0]->setMaxSize(scene_size/2);
 
-    puts("\n ==== Car ====");
-    car.push_back (new Mesh("Model_2.obj"));
-    car[0]->setMaxSize(scene_size/3);
+    //puts("\n ==== Car ====");
+    //car.push_back (new Mesh("Model_2.obj"));
+    //car[0]->setMaxSize(scene_size/3);
 
     //intersectScene();
 }

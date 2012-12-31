@@ -17,6 +17,8 @@
 #include <GL/glu.h>
 #endif
 
+static const float PI = 3.14159f;
+
 using namespace std;
 
 struct Colour {
@@ -273,7 +275,8 @@ struct Sphere {
                     center.z = (rad*center.z + old_to_new*vi->z) / old_to_p;
                 }
             }
-        } else {
+        }
+        else {
             for (vii=indices.begin(); vii!=indices.end(); ++vii) {
                 vi = vertices.begin() + *vii;
                 dx = vi->x-center.x;
@@ -294,6 +297,8 @@ struct Sphere {
             }
         }
     }
+
+    float getVolume() { return (4.0/3.0)*PI*rad*rad*rad; }
 
     Sphere &add(const Point &v) { center.add(v); return *this;}
 
@@ -397,7 +402,7 @@ public:
     static bool intersects (const Box &b, const Line &l)
     {
         /* local variables declare static in order to
-           simplify the storage required for recursion */
+           reduce the storage required for recursion */
         static char c1, c2, bit, axis;
         static float tdl;
         static Point dl, i;
@@ -419,9 +424,9 @@ public:
 
         /* Construct a triangle on the plane of intersection */
         Rv[0] = Rv[1] = Rv[2] = bit%2? b.min: b.max;
-        Rv[1].data[(axis+1)%3]+=10;  // keep the value on the plane axis
-        Rv[2].data[(axis+2)%3]+=10; // and alter the values on other 2 axes
-        R.update();                // Force the triangle to compute its coefficients
+        Rv[1].data[(axis+1)%3]+=10;     // keep the value on the plane axis
+        Rv[2].data[(axis+2)%3]+=10;     // and alter the values on other 2 axes
+        R.update();                     // Force the triangle to compute its coefficients
 
         /* Find the point of intersection */
         dl = Point(l.end).sub(l.start);
