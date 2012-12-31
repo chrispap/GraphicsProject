@@ -2,6 +2,7 @@
 #define GEOM_H
 
 #include <iostream>
+#include <cfloat>
 #include <vector>
 #include <list>
 #include <math.h>
@@ -47,27 +48,24 @@ struct Point {
     Point &scale(const float s) { x *= s; y *= s; z *= s; return *this; }
 };
 
-struct Line
-{
+struct Line {
     Point start, end;
 
-    Line() {}
+    Line(): start(0,0,0), end(0,0,0) {}
 
     Line (const Point &_start, const Point &_end): start(_start), end(_end) {}
 
     ~Line(void) {}
 };
 
-struct Box
-{
+struct Box {
     Point min, max;
 
-    Box() {}
+    Box(): min(0,0,0), max(0,0,0) {}
 
     Box(const Point &vmin, const Point &vmax): min(vmin), max(vmax) {}
 
-    Box(const Point &v1, const Point &v2, const Point &v3)
-    {
+    Box(const Point &v1, const Point &v2, const Point &v3) {
         min = Point(std::min(v1.x, std::min(v2.x, v3.x)),
                     std::min(v1.y, std::min(v2.y, v3.y)),
                     std::min(v1.z, std::min(v2.z, v3.z)));
@@ -77,8 +75,24 @@ struct Box
                     std::max(v1.z, std::max(v2.z, v3.z)));
     }
 
-    Box &forceMax (Box &maxBox)
-    {
+    Box(const vector<Point> &vertices) {
+        Point min,max;
+        min.x = min.y = min.z = FLT_MAX;
+        max.x = max.y = max.z = FLT_MIN;
+        vector<Point>::const_iterator vi;
+        for (vi=vertices.begin(); vi!=vertices.end(); ++vi) {
+            if      (vi->x > max.x) max.x = vi->x;
+            else if (vi->x < min.x) min.x = vi->x;
+            if      (vi->y > max.y) max.y = vi->y;
+            else if (vi->y < min.y) min.y = vi->y;
+            if      (vi->z > max.z) max.z = vi->z;
+            else if (vi->z < min.z) min.z = vi->z;
+        }
+        this->min = min;
+        this->max = max;
+    }
+
+    Box &forceMax (Box &maxBox) {
         if (min.x < maxBox.min.x) min.x = maxBox.min.x;
         if (min.y < maxBox.min.y) min.y = maxBox.min.y;
         if (min.z < maxBox.min.z) min.z = maxBox.min.z;
@@ -100,7 +114,7 @@ struct Box
 
     float getMaxSize() const { return std::max(getXSize(),std::max(getYSize(),getZSize()));}
 
-    float getVolume() const { return (max.x - min.x)*(max.y - min.y)*(max.z - min.z); }
+    float getVolume() const { return fabs((max.x - min.x)*(max.y - min.y)*(max.z - min.z)); }
 
     Box &add(const Point &v) { min.add(v); max.add(v); return *this; }
 
@@ -108,8 +122,7 @@ struct Box
 
     Box &scale(const float s) {min.scale(s); max.scale(s);return *this;}
 
-    void draw(const Colour &col, unsigned char a=0) const
-    {
+    void draw(const Colour &col, unsigned char a=0) const {
         static Point p[8];
         Point *v = p;
         *v++ = Point(min.x, min.y, min.z), //0
@@ -160,14 +173,127 @@ struct Box
     }
 };
 
-struct Sphere
-{
+struct Sphere {
     Point center;
     float rad;
 
-    Sphere () {}
+    Sphere (): center(0,0,0), rad(0) {}
 
-    Sphere(const Point &c, float r): center(c), rad(r) {}
+    Sphere (const Point &c, float r): center(c), rad(r) {}
+
+    Sphere (const vector<Point> &vertices, const set<int> &indices) {
+        bool all = !indices.size();
+        float dx,dy,dz;
+        float rad_sq,xspan,yspan,zspan,maxspan;
+        float old_to_p,old_to_p_sq,old_to_new;
+        Point xmin,xmax,ymin,ymax,zmin,zmax,dia1,dia2;
+        vector<Point>::const_iterator vi;
+        set<int>::const_iterator vii;
+
+        /* FIRST PASS: find 6 minima/maxima points */
+        xmin.x=ymin.y=zmin.z= FLT_MAX;
+        xmax.x=ymax.y=zmax.z= FLT_MIN;
+        if (all) {
+            for (vi=vertices.begin(); vi!=vertices.end(); ++vi) {
+                if (vi->x < xmin.x) xmin = *vi;
+                if (vi->x > xmax.x) xmax = *vi;
+                if (vi->y < ymin.y) ymin = *vi;
+                if (vi->y > ymax.y) ymax = *vi;
+                if (vi->z < zmin.z) zmin = *vi;
+                if (vi->z > zmax.z) zmax = *vi;
+            }
+        }
+        else {
+            for (vii=indices.begin(); vii!=indices.end(); ++vii) {
+                vi = vertices.begin() + *vii;
+                if (vi->x < xmin.x) xmin = *vi;
+                if (vi->x > xmax.x) xmax = *vi;
+                if (vi->y < ymin.y) ymin = *vi;
+                if (vi->y > ymax.y) ymax = *vi;
+                if (vi->z < zmin.z) zmin = *vi;
+                if (vi->z > zmax.z) zmax = *vi;
+            }
+        }
+
+        /* Set xspan = distance between the 2 points xmin & xmax (squared) */
+        dx = xmax.x - xmin.x;
+        dy = xmax.y - xmin.y;
+        dz = xmax.z - xmin.z;
+        xspan = dx*dx + dy*dy + dz*dz;
+
+        /* Same for y & z spans */
+        dx = ymax.x - ymin.x;
+        dy = ymax.y - ymin.y;
+        dz = ymax.z - ymin.z;
+        yspan = dx*dx + dy*dy + dz*dz;
+
+        dx = zmax.x - zmin.x;
+        dy = zmax.y - zmin.y;
+        dz = zmax.z - zmin.z;
+        zspan = dx*dx + dy*dy + dz*dz;
+
+        /* Set points dia1 & dia2 to the maximally separated pair */
+        dia1 = xmin; dia2 = xmax; /* assume xspan biggest */
+        maxspan = xspan;
+        if (yspan>maxspan) {
+            maxspan = yspan;
+            dia1 = ymin; dia2 = ymax;
+        }
+        if (zspan>maxspan) {
+            dia1 = zmin; dia2 = zmax;
+        }
+
+        /* dia1,dia2 is a diameter of initial sphere */
+        /* calc initial center */
+        center.x = (dia1.x+dia2.x)/2.0;
+        center.y = (dia1.y+dia2.y)/2.0;
+        center.z = (dia1.z+dia2.z)/2.0;
+        /* calculate initial radius**2 and radius */
+        dx = dia2.x-center.x; /* x component of radius vector */
+        dy = dia2.y-center.y; /* y component of radius vector */
+        dz = dia2.z-center.z; /* z component of radius vector */
+        rad_sq = dx*dx + dy*dy + dz*dz;
+        rad = sqrt(rad_sq);
+
+        if (all) {
+            for (vi=vertices.begin(); vi!=vertices.end(); ++vi) {
+                dx = vi->x-center.x;
+                dy = vi->y-center.y;
+                dz = vi->z-center.z;
+                old_to_p_sq = dx*dx + dy*dy + dz*dz;
+                if (old_to_p_sq > rad_sq) {
+                    old_to_p = sqrt(old_to_p_sq);
+                    /* calc radius of new sphere */
+                    rad = (rad + old_to_p) / 2.0;
+                    rad_sq = rad*rad;   /* for next r**2 compare */
+                    old_to_new = old_to_p - rad;
+                    /* calc center of new sphere */
+                    center.x = (rad*center.x + old_to_new*vi->x) / old_to_p;
+                    center.y = (rad*center.y + old_to_new*vi->y) / old_to_p;
+                    center.z = (rad*center.z + old_to_new*vi->z) / old_to_p;
+                }
+            }
+        } else {
+            for (vii=indices.begin(); vii!=indices.end(); ++vii) {
+                vi = vertices.begin() + *vii;
+                dx = vi->x-center.x;
+                dy = vi->y-center.y;
+                dz = vi->z-center.z;
+                old_to_p_sq = dx*dx + dy*dy + dz*dz;
+                if (old_to_p_sq > rad_sq) {
+                    old_to_p = sqrt(old_to_p_sq);
+                    /* calc radius of new sphere */
+                    rad = (rad + old_to_p) / 2.0;
+                    rad_sq = rad*rad;   /* for next r**2 compare */
+                    old_to_new = old_to_p - rad;
+                    /* calc center of new sphere */
+                    center.x = (rad*center.x + old_to_new*vi->x) / old_to_p;
+                    center.y = (rad*center.y + old_to_new*vi->y) / old_to_p;
+                    center.z = (rad*center.z + old_to_new*vi->z) / old_to_p;
+                }
+            }
+        }
+    }
 
     Sphere &add(const Point &v) { center.add(v); return *this;}
 
@@ -175,8 +301,9 @@ struct Sphere
 
     Sphere &scale (const float s) { center.scale(s); rad*=s; return *this;}
 
-    void draw(const Colour &col, unsigned char a=0) const
-    {
+    bool contains (const Point &v) { float dx=center.x-v.x, dy=center.y-v.y, dz=center.z-v.z;  return dx*dx+dy*dy+dz*dz < rad*rad;}
+
+    void draw(const Colour &col, unsigned char a=0) const {
         glPushMatrix();
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glTranslatef(center.x, center.y, center.z);
@@ -191,12 +318,12 @@ struct Sphere
 
         glPopMatrix();
     }
+
 };
 
-struct Triangle
-{
+struct Triangle {
     union { struct { int vi1, vi2, vi3;}; int v[3];};   // Indices to the vector below
-    vector<Point> *vecList;     // Pointer to the vector containing the mVertices
+    vector<Point> *vecList;     // Pointer to the vector containing the vertices
     float A, B, C, D;           // Plane equation coefficients
     Box box;                    // Bounding box of the triangle
     bool deleted;               // Flag indicating that a triangle should be considered deleted
@@ -211,8 +338,7 @@ struct Triangle
         update();
     }
 
-    void update()
-    {
+    void update() {
         box = Box(v1(), v2(), v3());
         A = v1().y*(v2().z-v3().z) + v2().y*(v3().z-v1().z) + v3().y*(v1().z-v2().z);
         B = v1().z*(v2().x-v3().x) + v2().z*(v3().x-v1().x) + v3().z*(v1().x-v2().x);

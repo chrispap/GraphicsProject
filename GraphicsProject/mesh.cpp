@@ -32,7 +32,7 @@ Mesh::Mesh(string filename, bool ccw):
     loadObj(filename, mVertices, mTriangles, ccw);
     createTriangleLists();
     createBoundingVolHierarchy();
-    //centerAlign();
+    centerAlign();
     createNormals();
     calculateVolume();
     printf ("Mesh loading took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
@@ -119,185 +119,115 @@ void Mesh::createBoundingVolHierarchy()
 
 void Mesh::createBoundingBoxHierarchy()
 {
-    /* Big Outer Box */
-    Point min,max;
-    min.x = min.y = min.z = FLT_MAX;
-    max.x = max.y = max.z = FLT_MIN;
-    vector<Point>::const_iterator vi;
-    for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
-        if      (vi->x > max.x) max.x = vi->x;
-        else if (vi->x < min.x) min.x = vi->x;
-        if      (vi->y > max.y) max.y = vi->y;
-        else if (vi->y < min.y) min.y = vi->y;
-        if      (vi->z > max.z) max.z = vi->z;
-        else if (vi->z < min.z) min.z = vi->z;
-    }
-    mAABB[0] = Box(min, max);
-
-    /* Levels of Hierrarchy */
+    /* The main box */
+    mAABB[0] = Box(mVertices);
 
     /*Construct a triangle list with all the triangles */
     mAABBTriangles[0].clear();
     for (int ti=0; ti < mTriangles.size(); ++ti)
         mAABBTriangles[0].push_back(ti);
 
-    /* For each level of hierarchy,
-     * for each node of this level,
-     * split the node to half.
-     */
+    /* Do BVL subdivisions */
     for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {
         for (int div=0; div < (1<<bvlevel); ++div) {
+            /* Find parent's, children's indices */
             int parent = (1<<bvlevel) -1+div;
-            int ch1 = 2*parent+1;
-            int ch2 = 2*parent+2;
-            mAABBTriangles[ch1].clear();
-            mAABBTriangles[ch2].clear();
+            int chL = 2*parent+1;
+            int chR = 2*parent+2;
+            mAABBTriangles[chL].clear();
+            mAABBTriangles[chR].clear();
+            /* Find the largest of the 3 dimensions (xyz) and divide the box */
             Point &min = mAABB[parent].min;
             Point &max = mAABB[parent].max;
-            int dim;
-            Box box1, box2;
+            int dim=0;
+            Box boxL, boxR;
             if (mAABB[parent].getXSize() > mAABB[parent].getYSize())
                  dim = (mAABB[parent].getXSize() > mAABB[parent].getZSize())? 0 : 1;
             else dim = (mAABB[parent].getYSize() > mAABB[parent].getZSize())? 1 : 2;
             float lim = (max.data[dim] + min.data[dim])/2;
-
             if (dim==0) {
-                box1 = Box(min, Point(lim, max.y, max.z));
-                box2 = Box(Point(lim, min.y, min.z), max);
+                boxL = Box(min, Point(lim, max.y, max.z));
+                boxR = Box(Point(lim, min.y, min.z), max);
             } else if (dim==1) {
-                box1 = Box(min, Point(max.x, lim, max.z));
-                box2 = Box(Point(min.x, lim, min.z), max);
+                boxL = Box(min, Point(max.x, lim, max.z));
+                boxR = Box(Point(min.x, lim, min.z), max);
             } else {
-                box1 = Box(min, Point(max.x, max.y, lim));
-                box2 = Box(Point(min.x, min.y, lim), max);
+                boxL = Box(min, Point(max.x, max.y, lim));
+                boxR = Box(Point(min.x, min.y, lim), max);
             }
-
-            Point min1,max1,min2,max2;
-            min1.x = min1.y = min1.z = FLT_MAX;
-            max1.x = max1.y = max1.z = FLT_MIN;
-            min2.x = min2.y = min2.z = FLT_MAX;
-            max2.x = max2.y = max2.z = FLT_MIN;
+            /* Find the triangles that belong to each subdivision*/
+            Point minL,maxL,minR,maxR;
+            minL.x = minL.y = minL.z = FLT_MAX;
+            maxL.x = maxL.y = maxL.z = FLT_MIN;
+            minR.x = minR.y = minR.z = FLT_MAX;
+            maxR.x = maxR.y = maxR.z = FLT_MIN;
 
             list<int>::const_iterator bvi;
             for (bvi=mAABBTriangles[parent].begin(); bvi!=mAABBTriangles[parent].end(); ++bvi) {
                 Triangle &t = mTriangles[*bvi];
-                bool left = Geom::intersects(box1, t.getBox());
-                bool right = Geom::intersects(box2, t.getBox());
-
-                if (left) {
-                    mAABBTriangles[ch1].push_back(*bvi);
+                /* Check both boxes */
+                if (Geom::intersects(boxL, t.getBox())) {
+                    mAABBTriangles[chL].push_back(*bvi);
                     for (int vi=0; vi<3; ++vi) {
                         Point &v = mVertices[t.v[vi]];
-                        if      (v.x > max1.x) max1.x = v.x;
-                        else if (v.x < min1.x) min1.x = v.x;
-                        if      (v.y > max1.y) max1.y = v.y;
-                        else if (v.y < min1.y) min1.y = v.y;
-                        if      (v.z > max1.z) max1.z = v.z;
-                        else if (v.z < min1.z) min1.z = v.z;
+                        if      (v.x > maxL.x) maxL.x = v.x;
+                        else if (v.x < minL.x) minL.x = v.x;
+                        if      (v.y > maxL.y) maxL.y = v.y;
+                        else if (v.y < minL.y) minL.y = v.y;
+                        if      (v.z > maxL.z) maxL.z = v.z;
+                        else if (v.z < minL.z) minL.z = v.z;
                     }
                 }
-                if (right) {
-                    mAABBTriangles[ch2].push_back(*bvi);
+                if (Geom::intersects(boxR, t.getBox())) {
+                    mAABBTriangles[chR].push_back(*bvi);
                     for (int vi=0; vi<3; ++vi) {
                         Point &v = mVertices[t.v[vi]];
-                        if      (v.x > max2.x) max2.x = v.x;
-                        else if (v.x < min2.x) min2.x = v.x;
-                        if      (v.y > max2.y) max2.y = v.y;
-                        else if (v.y < min2.y) min2.y = v.y;
-                        if      (v.z > max2.z) max2.z = v.z;
-                        else if (v.z < min2.z) min2.z = v.z;
+                        if      (v.x > maxR.x) maxR.x = v.x;
+                        else if (v.x < minR.x) minR.x = v.x;
+                        if      (v.y > maxR.y) maxR.y = v.y;
+                        else if (v.y < minR.y) minR.y = v.y;
+                        if      (v.z > maxR.z) maxR.z = v.z;
+                        else if (v.z < minR.z) minR.z = v.z;
                     }
                 }
             }
-
-            mAABB[ch1] = Box(min1, max1).forceMax(box1);
-            mAABB[ch2] = Box(min2, max2).forceMax(box2);
+            mAABB[chL] = Box(minL, maxL).forceMax(boxL);
+            mAABB[chR] = Box(minR, maxR).forceMax(boxR);
         }
     }
 }
 
 void Mesh::createBoundingSphereHierarchy()
 {
-    Point cen;
-    float rad;
-    float dx,dy,dz;
-    float rad_sq,xspan,yspan,zspan,maxspan;
-    float old_to_p,old_to_p_sq,old_to_new;
-    Point xmin,xmax,ymin,ymax,zmin,zmax,dia1,dia2;
-    vector<Point>::const_iterator vi;
+    set<int> setL, setR;
+    mSphere[0] = Sphere(mVertices, setL);
 
-    /* FIRST PASS: find 6 minima/maxima points */
-    xmin.x=ymin.y=zmin.z= FLT_MAX;
-    xmax.x=ymax.y=zmax.z= FLT_MIN;
+    for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {
+        for (int div=0; div < (1<<bvlevel); ++div) {
+            /* Find parent's, children's indices */
+            int parent = (1<<bvlevel) -1+div;
+            int chL = 2*parent+1;
+            int chR = 2*parent+2;
+            setL.clear();
+            setR.clear();
+            mSphereTriangles[chL].clear();
+            mSphereTriangles[chR].clear();
+            int dim=0;
+            float lim = mSphere[parent].center.data[dim];
+            list<int>::const_iterator bvi;
+            for (bvi=mAABBTriangles[parent].begin(); bvi!=mAABBTriangles[parent].end(); ++bvi) {
+                Triangle &t = mTriangles[*bvi];
+                if (mVertices[t.vi1].data[dim] < lim)
+                    setL.insert(t.vi1);
+                else
+                    setR.insert(t.vi1);
 
-    for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
-        if (vi->x < xmin.x) xmin = *vi;
-        if (vi->x > xmax.x) xmax = *vi;
-        if (vi->y < ymin.y) ymin = *vi;
-        if (vi->y > ymax.y) ymax = *vi;
-        if (vi->z < zmin.z) zmin = *vi;
-        if (vi->z > zmax.z) zmax = *vi;
-    }
+            }
 
-    /* Set xspan = distance between the 2 points xmin & xmax (squared) */
-    dx = xmax.x - xmin.x;
-    dy = xmax.y - xmin.y;
-    dz = xmax.z - xmin.z;
-    xspan = dx*dx + dy*dy + dz*dz;
-
-    /* Same for y & z spans */
-    dx = ymax.x - ymin.x;
-    dy = ymax.y - ymin.y;
-    dz = ymax.z - ymin.z;
-    yspan = dx*dx + dy*dy + dz*dz;
-
-    dx = zmax.x - zmin.x;
-    dy = zmax.y - zmin.y;
-    dz = zmax.z - zmin.z;
-    zspan = dx*dx + dy*dy + dz*dz;
-
-    /* Set points dia1 & dia2 to the maximally separated pair */
-    dia1 = xmin; dia2 = xmax; /* assume xspan biggest */
-    maxspan = xspan;
-    if (yspan>maxspan) {
-        maxspan = yspan;
-        dia1 = ymin; dia2 = ymax;
-    }
-    if (zspan>maxspan) {
-        dia1 = zmin; dia2 = zmax;
-    }
-
-    /* dia1,dia2 is a diameter of initial sphere */
-    /* calc initial center */
-    cen.x = (dia1.x+dia2.x)/2.0;
-    cen.y = (dia1.y+dia2.y)/2.0;
-    cen.z = (dia1.z+dia2.z)/2.0;
-    /* calculate initial radius**2 and radius */
-    dx = dia2.x-cen.x; /* x component of radius vector */
-    dy = dia2.y-cen.y; /* y component of radius vector */
-    dz = dia2.z-cen.z; /* z component of radius vector */
-    rad_sq = dx*dx + dy*dy + dz*dz;
-    rad = sqrt(rad_sq);
-
-    for (vi=mVertices.begin(); vi!=mVertices.end(); ++vi) {
-        dx = vi->x-cen.x;
-        dy = vi->y-cen.y;
-        dz = vi->z-cen.z;
-        old_to_p_sq = dx*dx + dy*dy + dz*dz;
-        if (old_to_p_sq > rad_sq) {
-            old_to_p = sqrt(old_to_p_sq);
-            /* calc radius of new sphere */
-            rad = (rad + old_to_p) / 2.0;
-            rad_sq = rad*rad;   /* for next r**2 compare */
-            old_to_new = old_to_p - rad;
-            /* calc center of new sphere */
-            cen.x = (rad*cen.x + old_to_new*vi->x) / old_to_p;
-            cen.y = (rad*cen.y + old_to_new*vi->y) / old_to_p;
-            cen.z = (rad*cen.z + old_to_new*vi->z) / old_to_p;
+            mSphere[chL] = Sphere(mVertices, setL);
+            mSphere[chR] = Sphere(mVertices, setR);
         }
     }
-
-    mSphere[0] = Sphere(cen, rad);
 }
 
 void Mesh::calculateVolume()
@@ -342,15 +272,15 @@ void Mesh::calculateVolume()
     printf("             \r");
 
     /* Calculate the coverage for every level */
-    float cover = ((float)voxelCount)/voxelTotal;
     float fullVol = mAABB[0].getVolume();
-    AABBCover[0] = cover;
+    AABBCover[0] = ((float)voxelCount)/voxelTotal;
+    float boundingVol;
 
     for (int bvlevel=1; bvlevel<=BVL; ++bvlevel) {
-        float boundingVol=0;
-        for (int bi=(1<<bvlevel) -1; bi< (2<<bvlevel) -1; ++bi)
+        boundingVol=0;
+        for (int bi=BVL_SIZE(bvlevel-1); bi< BVL_SIZE(bvlevel); ++bi)
             boundingVol += mAABB[bi].getVolume();
-        AABBCover[bvlevel] = (cover*fullVol)/boundingVol;
+        AABBCover[bvlevel] = (AABBCover[0]*fullVol)/boundingVol;
     }
 }
 
@@ -448,7 +378,6 @@ void Mesh::intersect( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<Trian
 
 
 /** Editing */
-
 static vector<Triangle> * tVec;
 static vector<Point>    * nVec;
 static vector<set<int> >* sVec;
@@ -486,8 +415,8 @@ static bool NormalComparator (const int& l, const int& r)
 void Mesh::simplify(int percent)
 {
     clock_t t = clock();
-    list<int> procList;          // List of candidate triangles for collapse
-    list<int>::iterator pli;     // Iterator for the list above
+    list<int> procList;         // List of candidate triangles for collapse
+    list<int>::iterator pli;    // Iterator for the list above
     int ti, tx;                 // Indices of current triangles proccessed
 
     /* Populate triangle list with all the triangles and sort it */
@@ -713,7 +642,7 @@ void Mesh::drawSphere(Colour col, bool hier)
 
     if (hier) {
         for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
-            mSphere[bi].draw(col, 0x50);
+            mSphere[bi].draw(col, 0x0);
         }
     }
 }
