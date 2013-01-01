@@ -51,7 +51,8 @@ Mesh::Mesh( Mesh &m1,  Mesh &m2, bool both):
 {
     clock_t t = clock();
     intersect(m1, m2, mVertices, mTriangles, both);
-    //printf ("Mesh collision took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
+    if ( mTriangles.size())
+        printf ("Mesh intersection took:\t%4.2f sec | %d triangles \n", ((float)clock()-t)/CLOCKS_PER_SEC, mTriangles.size());
 }
 
 Mesh::Mesh(const Mesh &copyfrom):
@@ -223,7 +224,7 @@ void Mesh::createBoundingSphereHierarchy()
             list<int>::const_iterator bvi;
             for (bvi=mSphereTriangles[parent].begin(); bvi!=mSphereTriangles[parent].end(); ++bvi) {
                 Triangle &t = mTriangles[*bvi];
-                if (mVertices[t.vi1].x < lim || mVertices[t.vi2].x < lim || mVertices[t.vi3].x < lim) {
+                if (mVertices[t.vi1].data[dim] < lim || mVertices[t.vi2].data[dim] < lim || mVertices[t.vi3].data[dim] < lim) {
                     setL.insert(t.vi1);setL.insert(t.vi2);setL.insert(t.vi3);
                     mSphereTriangles[chL].push_back(*bvi);
                 }
@@ -261,8 +262,8 @@ void Mesh::calculateVolume()
                 /* Count intersecting triangles */
                 intersectionsCount=0;
                 list<int>::const_iterator ti;
-                for (int bi=0; bi<1; ++bi) {
-                    //if (!Geom::intersects(mAABB[bi], ray)) continue;
+                for (int bi=BVL_SIZE(0-1); bi<BVL_SIZE(0); ++bi) {
+                    if (!Geom::intersects(mAABB[bi], ray)) continue;
                     for (ti = mAABBTriangles[bi].begin(); ti!=mAABBTriangles[bi].end(); ++ti) {
                         Triangle &t = mTriangles[*ti];
                         if ((Geom::mkcode(ray.start, t.getBox()) & Geom::mkcode(ray.end, t.getBox()))) continue;
@@ -281,7 +282,6 @@ void Mesh::calculateVolume()
         printf ("\r");
     }
     printf("             \r");
-    printf("Inside %ld / Total %ld \n", voxelInside, voxelTotal);
 
     /* Calculate the coverage for every level */
     float objVol = (mAABB[0].getVolume()*voxelInside)/voxelTotal;
@@ -292,7 +292,10 @@ void Mesh::calculateVolume()
         for (int bi=BVL_SIZE(bvlevel-1); bi< BVL_SIZE(bvlevel); ++bi) {
             bVol += mAABB[bi].getVolume();
             sVol += mSphere[bi].getVolume();
+            for (int bii=bi+1; bii< BVL_SIZE(bvlevel); ++bii)
+                sVol -= Geom::intersectionVolume(mSphere[bi], mSphere[bii]);
         }
+
         AABBCover[bvlevel] = objVol/bVol;
         sphereCover[bvlevel] = objVol/sVol;
     }
@@ -395,7 +398,6 @@ void Mesh::intersect( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<Trian
 static vector<Triangle> * tVec;
 static vector<Point>    * nVec;
 static vector<set<int> >* sVec;
-
 static bool NormalComparator (const int& l, const int& r)
 {
     int compTrian[2]= {l, r};   // triangles for compare
@@ -656,8 +658,9 @@ void Mesh::drawSphere(Colour col, bool hier)
         mSphere[0].draw(col, 0);
     }
     else {
+        unsigned char A=0;
         for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {
-            mSphere[bi].draw(col, 0x0);
+            mSphere[bi].draw(col, A);
         }
     }
 }

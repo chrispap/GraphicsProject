@@ -39,7 +39,7 @@ struct Point {
 
     bool operator!= (const Point &p) { return !(*this == p); }
 
-    float r() { return pow((x*x+y*y+z*z), 1.0f/3);}
+    float r() { return sqrt(x*x+y*y+z*z);}
 
     void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
 
@@ -298,7 +298,7 @@ struct Sphere {
         }
     }
 
-    float getVolume() { return (4.0/3.0)*PI*rad*rad*rad; }
+    float getVolume() const { return (4.0/3.0)*PI*(rad*rad*rad); }
 
     Sphere &add(const Point &v) { center.add(v); return *this;}
 
@@ -306,7 +306,7 @@ struct Sphere {
 
     Sphere &scale (const float s) { center.scale(s); rad*=s; return *this;}
 
-    bool contains (const Point &v) { float dx=center.x-v.x, dy=center.y-v.y, dz=center.z-v.z;  return dx*dx+dy*dy+dz*dz < rad*rad;}
+    bool contains (const Point &v) const { float dx=center.x-v.x, dy=center.y-v.y, dz=center.z-v.z;  return dx*dx+dy*dy+dz*dz < rad*rad;}
 
     void draw(const Colour &col, unsigned char a=0) const {
         glPushMatrix();
@@ -485,6 +485,32 @@ public:
 
         /* Telika den ypaarxei sygkrousi. */
         else return false;
+    }
+
+    static float distance (const Point p1, const Point p2)
+    {
+        float dx = (p1.x - p2.x), 
+              dy = (p1.y - p2.y),
+              dz = (p1.z - p2.z);
+        return sqrt(dx*dx + dy*dy + dz*dz);
+    }
+
+    static float intersectionVolume (const Sphere &s1, const Sphere &s2) 
+    {
+        bool s1GTs2 = s1.rad>s2.rad;
+        float R = s1GTs2? s1.rad : s2.rad;
+        float r = s1GTs2? s2.rad : s1.rad;
+        const Sphere &S = s1GTs2? s1 : s2;
+        const Sphere &s = s1GTs2? s2 : s1;
+        float d = distance(S.center, s.center);
+        
+        if (d >= R+r) return 0.0;
+        if (d <= R-r) return s.getVolume();
+
+        float tmp1 = R+r-d; tmp1 = tmp1*tmp1;
+        float tmp2 = (d*d) + (2.0*d*r) - (3.0*r*r) + (2.0*d*R) + (6.0*R*r) - (3.0*R*R);
+        return ((PI * tmp1 * tmp2)) / (12.0*d);
+
     }
 
 };

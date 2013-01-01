@@ -28,7 +28,8 @@ GlVisuals::GlVisuals():
     sel_obj (0),
     milli0 (-1),
     t (0.0),
-    style (SOLID)
+    style (SOLID),
+    bvlStyle(AABB)
 {
     loadScene();
 }
@@ -52,11 +53,11 @@ void GlVisuals::loadScene()
     armadillo.push_back (new Mesh("Model_1.obj", 1));
     armadillo[0]->setMaxSize(scene_size/2);
 
-    //puts("\n ==== Car ====");
-    //car.push_back (new Mesh("Model_2.obj"));
-    //car[0]->setMaxSize(scene_size/3);
+    puts("\n ==== Car ====");
+    car.push_back (new Mesh("Model_2.obj"));
+    car[0]->setMaxSize(scene_size/3);
 
-    //intersectScene();
+    intersectScene();
 }
 
 void GlVisuals::resetScene()
@@ -96,15 +97,18 @@ void GlVisuals::intersectScene()
     }
 }
 
-void GlVisuals::duplicateObject(int obj)
+void GlVisuals::simplifyObject(int obj, bool duplicate)
 {
     vector<Mesh*> &model = obj==0? armadillo: car;
 
-    //~ model.push_back (new Mesh(*model.back()));
-    //~ Point mov = Point(model.back()->getBox().getSize());
-    //~ mov.x=0;mov.y=0;
-    //~ model.back()->move(mov);
-    //~ sel_i = model.size()-1;
+    if (duplicate) {
+        model.push_back (new Mesh(*model.back()));
+        Point mov = Point(model.back()->getBox().getSize());
+        mov.x=0;mov.y=0;
+        model.back()->move(mov);
+        sel_i = model.size()-1;
+    }
+
     model.back()->simplify(1);
     intersectScene();
 }
@@ -112,10 +116,10 @@ void GlVisuals::duplicateObject(int obj)
 void GlVisuals::drawScene()
 {
     for (int i=0; i<armadillo.size(); ++i)
-        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==sel_i)?AABB:0));
+        armadillo[i]->draw (Colour(0x66,0x66,0), style | ((i==sel_i&&sel_obj==0)?bvlStyle:0));
 
     for (int i=0; i<car.size(); ++i)
-        car[i]->draw (Colour(0,0x66,0x66), style | ((i==sel_i)?AABB:0));
+        car[i]->draw (Colour(0,0x66,0x66), style | ((i==sel_i&&sel_obj==1)?bvlStyle:0));
 
     for (int i=0; i<intersection.size(); ++i)
         intersection[i]->draw (Colour(0x66,0,0x66), SOLID | WIRE);
@@ -213,7 +217,7 @@ void GlVisuals::enterPixelMode()
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-    glOrtho(0, screen_width, screen_height, 0, 10, -10);
+    glOrtho(0, screen_width, screen_height, 0, 1, -1);
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
@@ -243,23 +247,22 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
 {
     bool ctrl  =  modif & 0x01;
     bool shift =  modif & 0x02;
-
     key = tolower(key);
 
     if (up) {
         //sel_i = -1;
     }
     else {
-        if (isdigit(key)) { sel_i = key-'0'-1; sel_obj = (shift?1:0);}
+        if (isdigit(key))  sel_i = key-'0'-1;
+        else if (key==' ') sel_obj = (sel_obj+1)%2; 
         else if (key=='0') sel_i = -1;
-        else if (key=='d') duplicateObject(shift?1:0);
+        else if (key=='d') simplifyObject(sel_obj, shift?true:false);
         else if (key=='r') resetScene();
         else if (key=='i') intersectScene();
+        else if (key=='b') bvlStyle = bvlStyle==AABB? SPHERE: AABB;
         else if (key=='s') style ^= SOLID;
         else if (key=='w') style ^= WIRE;
         else if (key=='n') style ^= NORMALS;
-        else if (key=='p') style ^= SPHERE;
-        else if (key=='b') style ^= AABB;
         else if (key=='t') style ^= TBOXES;
         else if (key=='v') style ^= VOXELS;
         else if (key=='h') style ^= HIER;
@@ -284,12 +287,11 @@ void GlVisuals::arrowEvent (int dir, int modif)
         float &e = ctrl? t.y : dir&2? t.z : t.x;
         e = dir&1? e - scene_size/50: e + scene_size/50;
 
-        if (shift && sel_i<car.size())
-            car[sel_i]->move(t);
-        else if (!shift && sel_i<armadillo.size())
+        if (sel_obj==0 && sel_i<armadillo.size())
             armadillo[sel_i]->move(t);
-
-        //it slows things down but never mind...
+        else if (sel_obj==1 && sel_i<car.size())
+            car[sel_i]->move(t);
+        
         intersectScene();
     }
 }

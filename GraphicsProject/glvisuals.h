@@ -19,7 +19,7 @@ class GlVisuals
     int mouseCurrX, mouseCurrY;         // Coords of mouse movement
     int screen_width, screen_height;    // Size of the windows in pixels
     int sel_i, sel_obj;                 // Selected objects
-    int style;                          // The global style used for model drawing
+    int style, bvlStyle;               // The global style used for model drawing
 
     /* For animation */
     float t;                            // Elapsed time in seconds since the start of the animation
@@ -39,8 +39,8 @@ class GlVisuals
     void loadScene ();
     void drawScene ();
     void resetScene ();
-    void duplicateObject (int obj);
     void intersectScene ();
+    void simplifyObject (int obj, bool duplicate=false);
 
 public:
     GlVisuals();
