@@ -209,6 +209,7 @@ void Mesh::createBoundingSphereHierarchy()
         mSphereTriangles[0].push_back(ti);
 
     for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {
+        int dim=0;
         for (int div=0; div < (1<<bvlevel); ++div) {
             /* Find parent's, children's indices */
             int parent = (1<<bvlevel) -1+div;
@@ -218,8 +219,7 @@ void Mesh::createBoundingSphereHierarchy()
             setR.clear();
             mSphereTriangles[chL].clear();
             mSphereTriangles[chR].clear();
-            int dim=0;
-            float lim = mSphere[parent].center.x;
+            float lim = mSphere[parent].center.data[dim];
 
             list<int>::const_iterator bvi;
             for (bvi=mSphereTriangles[parent].begin(); bvi!=mSphereTriangles[parent].end(); ++bvi) {
@@ -239,6 +239,7 @@ void Mesh::createBoundingSphereHierarchy()
             if (setR.size()) mSphere[chR] = Sphere(mVertices, setR);
             else mSphere[chR] = Sphere();
         }
+        dim = (dim+1)%3;
     }
 }
 
