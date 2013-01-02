@@ -24,7 +24,7 @@ GlVisuals::GlVisuals():
     perspective_proj (1),
     scene_size (100),
     scene_dist (scene_size*0.5),
-    sel_i (-1),
+    sel_i (0),
     sel_obj (0),
     milli0 (-1),
     t (0.0),
@@ -52,6 +52,9 @@ void GlVisuals::loadScene()
     puts("\n ==== Armadillo ====");
     armadillo.push_back (new Mesh("Model_1.obj", 1));
     armadillo[0]->setMaxSize(scene_size/2);
+    Point mov = Point(armadillo[0]->getBox().getSize());
+    mov.x=0;mov.y=0;mov.z*=-1;
+    armadillo[0]->move(mov);
 
     puts("\n ==== Car ====");
     car.push_back (new Mesh("Model_2.obj"));
@@ -97,9 +100,15 @@ void GlVisuals::intersectScene()
     }
 }
 
-void GlVisuals::simplifyObject(int obj, bool duplicate)
+void GlVisuals::simplifyObject(bool duplicate)
 {
-    vector<Mesh*> &model = obj==0? armadillo: car;
+    if (sel_i<0) return;
+    vector<Mesh*> *_model;
+    if (sel_obj==0) _model = &armadillo;
+    else if (sel_obj==1) _model = &car;
+    else return;
+
+    vector<Mesh*> &model = *_model;
 
     if (duplicate) {
         model.push_back (new Mesh(*model.back()));
@@ -256,7 +265,7 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
         if (isdigit(key))  sel_i = key-'0'-1;
         else if (key==' ') sel_obj = (sel_obj+1)%2; 
         else if (key=='0') sel_i = -1;
-        else if (key=='d') simplifyObject(sel_obj, shift?true:false);
+        else if (key=='d') simplifyObject(shift);
         else if (key=='r') resetScene();
         else if (key=='i') intersectScene();
         else if (key=='b') bvlStyle = bvlStyle==AABB? SPHERE: AABB;

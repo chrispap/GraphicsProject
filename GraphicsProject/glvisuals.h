@@ -40,7 +40,7 @@ class GlVisuals
     void drawScene ();
     void resetScene ();
     void intersectScene ();
-    void simplifyObject (int obj, bool duplicate=false);
+    void simplifyObject (bool duplicate=false);
 
 public:
     GlVisuals();
