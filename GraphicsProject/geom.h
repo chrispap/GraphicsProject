@@ -432,7 +432,7 @@ public:
         dl = Point(l.end).sub(l.start);
         tdl = -R.planeEquation(l.start)/(R.planeEquation(dl)- R.D);
         i = Point(l.start).add(dl.scale(tdl));
-
+        return 1;
         return (rand()%2)? intersects(b, Line(l.start, i)) : intersects(b, Line(i, l.end));
     }
 

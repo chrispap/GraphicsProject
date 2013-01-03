@@ -261,14 +261,20 @@ void Mesh::calculateVolume()
                 Line ray (ray0, rayFar);
 
                 /* Count intersecting triangles */
+                list<int>allreadyIntersected;
+                allreadyIntersected.clear();
                 intersectionsCount=0;
                 list<int>::const_iterator ti;
-                for (int bi=BVL_SIZE(0-1); bi<BVL_SIZE(0); ++bi) {
+                int bvl = BVL;
+                for (int bi=BVL_SIZE(bvl-1); bi<BVL_SIZE(bvl); ++bi) {
                     if (!Geom::intersects(mAABB[bi], ray)) continue;
                     for (ti = mAABBTriangles[bi].begin(); ti!=mAABBTriangles[bi].end(); ++ti) {
                         Triangle &t = mTriangles[*ti];
                         if ((Geom::mkcode(ray.start, t.getBox()) & Geom::mkcode(ray.end, t.getBox()))) continue;
-                        if ( Geom::intersects(t, ray)) ++intersectionsCount;
+                        if ( Geom::intersects(t, ray) && (find(allreadyIntersected.begin(), allreadyIntersected.end(), *ti)==allreadyIntersected.end())) {
+                            ++intersectionsCount;
+                            allreadyIntersected.push_back(*ti);
+                        }
                     }
                 }
 

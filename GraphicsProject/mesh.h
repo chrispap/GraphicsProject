@@ -21,7 +21,7 @@ using namespace std;
 
 #define BVL_SIZE(L) ((1<<((L)+1))-1)            // MACRO giving the total number of nodes in a hierarchy tree with L levels
 #define BVL     7                               // Number of levels of hierarchy of bounding volumes
-#define VDIV    10                              // Number of divisions for volume scanning
+#define VDIV    100                             // Number of divisions for volume scanning
 
 class Mesh
 {
