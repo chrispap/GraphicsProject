@@ -217,7 +217,7 @@ void GlVisuals::glPaint()
     glRotatef(globRot.x, 1, 0, 0);
     glRotatef(globRot.y, 0, 1, 0);
     glRotatef(globRot.z, 0, 0, 1);
-    drawAxes();
+    //drawAxes();
     drawScene();
 }
 
