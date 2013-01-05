@@ -172,7 +172,7 @@ void GlVisuals::glInitialize()
     glClearDepth(1.0);
 
     //glEnable(GL_CULL_FACE);
-    glEnable(GL_POINT_SMOOTH);
+    //glEnable(GL_POINT_SMOOTH);
     glEnable (GL_BLEND);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
