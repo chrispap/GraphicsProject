@@ -470,8 +470,7 @@ public:
     static bool intersects (const Triangle &t1, const Triangle &t2)
     {
         /* Arxika elegxoume an sygkrouontai ta bounding boxes. */
-        if (!intersects(t1.box, t2.box))
-            return false;
+        if (!intersects(t1.box, t2.box)) return false;
 
         /* Stin synexeia elegxoume akmh-akmh. */
         else if (

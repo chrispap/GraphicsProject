@@ -261,8 +261,8 @@ void Mesh::calculateVolume()
                 Line ray (ray0, rayFar);
 
                 /* Count intersecting triangles */
-                list<int>allreadyIntersected;
-                allreadyIntersected.clear();
+                list<int>alreadyIntersected;
+                alreadyIntersected.clear();
                 intersectionsCount=0;
                 list<int>::const_iterator ti;
                 int bvl = BVL;
@@ -271,9 +271,9 @@ void Mesh::calculateVolume()
                     for (ti = mAABBTriangles[bi].begin(); ti!=mAABBTriangles[bi].end(); ++ti) {
                         Triangle &t = mTriangles[*ti];
                         if ((Geom::mkcode(ray.start, t.getBox()) & Geom::mkcode(ray.end, t.getBox()))) continue;
-                        if ( Geom::intersects(t, ray) && (find(allreadyIntersected.begin(), allreadyIntersected.end(), *ti)==allreadyIntersected.end())) {
+                        if ( Geom::intersects(t, ray) && (find(alreadyIntersected.begin(), alreadyIntersected.end(), *ti)==alreadyIntersected.end())) {
                             ++intersectionsCount;
-                            allreadyIntersected.push_back(*ti);
+                            alreadyIntersected.push_back(*ti);
                         }
                     }
                 }
@@ -338,66 +338,65 @@ void Mesh::loadObj(string filename, vector<Point> &vertices, vector<Triangle> &t
 
 void Mesh::intersect( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<Triangle> &triangles, bool both)
 {
+    //TODO: Eliminate vertex repetition
+
+    /* Trivial check */
     Box bbox1 = Box(m1.getBox()).add(m1.mPos);
     Box bbox2 = Box(m2.getBox()).add(m2.mPos);
+    if (!Geom::intersects (bbox1, bbox2)) return;
 
-    if (Geom::intersects (bbox1, bbox2)) // trivial check
-    {
-        //TODO Eliminate vertex repetition
+    vector<Triangle> const &mt1 = m1.mTriangles;    // Just for a shorter name
+    vector<Triangle> const &mt2 = m2.mTriangles;    // Just for a shorter name
+    int bi1, bi2;                                   // Indices to models' bounding boxes
+    list<int>::const_iterator mti1, mti2;           // Iterators for trianges of boxes'
+    vector<bool> mtCol1, mtCol2;                    // Flags indicating that a triangle has already collided
+    unsigned int count=0;                           // Count intersecting triangles
 
-        m1.hardTranslate(m1.mPos);
-        m2.hardTranslate(m2.mPos);
+    /* Bring objects to theis actual positions */
+    m1.hardTranslate(m1.mPos);
+    m2.hardTranslate(m2.mPos);
 
-        vector<Triangle> const &m1t = m1.mTriangles;
-        vector<Triangle> const &m2t = m2.mTriangles;
+    mtCol1.resize(mt1.size(), 0);
+    if (both) mtCol2.resize(mt2.size(), 0);
 
-        unsigned int count=0;       // count intersecting triangles
-        unsigned int m1ti;          // index to model's 1 triangles
-        bool m1tCollided;           // Flag indicating the collision of a triangle in the outer loop
-        vector<char> m2tCollided;   // Keep track of allready collided triangles
-        if (both)                   // We need it only if we are looking for triangles from both models
-            m2tCollided.resize(m2t.size(), 0);
-
-        for (m1ti=0; m1ti<m1t.size(); ++m1ti) { // for all triangles of model 1
-            m1tCollided=false;
-
-            for (int bi=BVL_SIZE(BVL-1); bi<BVL_SIZE(BVL); ++bi) {  // for all bounding boxes of last level of model 2
-                if (!Geom::intersects(m2.mAABB[bi], m1t[m1ti].box)) continue;
-
-                list<int>::const_iterator m2ti;
-                for (m2ti = m2.mAABBTriangles[bi].begin(); m2ti!=m2.mAABBTriangles[bi].end(); ++m2ti) {
-                    if (m1tCollided && m2tCollided[*m2ti]) continue;
-                    if (!Geom::intersects(m1t[m1ti], m2t[*m2ti])) continue;
-
-                    /* Add the colliding triangle of the first model. */
-                    if (!m1tCollided) {
-                        vertices.push_back(m1t[m1ti].v1());
-                        vertices.push_back(m1t[m1ti].v2());
-                        vertices.push_back(m1t[m1ti].v3());
-                        triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
-                        count++;
-                        m1tCollided=true;
-                    }
-                    /* Add the colliding triangle of the second model if this is requested, otherwise break. */
-                    if (!both)
-                        break;
-                    else if (!m2tCollided[*m2ti]) {
-                        vertices.push_back(m2t[*m2ti].v1());
-                        vertices.push_back(m2t[*m2ti].v2());
-                        vertices.push_back(m2t[*m2ti].v3());
-                        triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
-                        count++;
-                        m2tCollided[*m2ti]=true;
+    for (bi1=BVL_SIZE(BVL-1); bi1<BVL_SIZE(BVL); ++bi1) {
+        for (bi2=BVL_SIZE(BVL-1); bi2<BVL_SIZE(BVL); ++bi2) {
+            if (Geom::intersects(m1.mAABB[bi1], m2.mAABB[bi2])) {
+                for (mti1 = m1.mAABBTriangles[bi1].begin(); mti1!=m1.mAABBTriangles[bi1].end(); ++mti1) {
+                    if (Geom::intersects(mt1[*mti1].box, m2.mAABB[bi2])) {
+                        for (mti2 = m2.mAABBTriangles[bi2].begin(); mti2!=m2.mAABBTriangles[bi2].end(); ++mti2) {
+                            if ( Geom::intersects(mt1[*mti1], mt2[*mti2]) ) {
+                                /* Add the colliding triangle of the first model. */
+                                if (!mtCol1[*mti1]) {
+                                    vertices.push_back(mt1[*mti1].v1());
+                                    vertices.push_back(mt1[*mti1].v2());
+                                    vertices.push_back(mt1[*mti1].v3());
+                                    triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
+                                    mtCol1[*mti1]=true;
+                                    ++count;
+                                }
+                                /* Add the colliding triangle of the second model. (Only if both is set) */
+                                if (both && !mtCol2[*mti2]) {
+                                    vertices.push_back(mt2[*mti2].v1());
+                                    vertices.push_back(mt2[*mti2].v2());
+                                    vertices.push_back(mt2[*mti2].v3());
+                                    triangles.push_back(Triangle(&vertices, 3*count, 3*count+1, 3*count+2));
+                                    mtCol2[*mti2]=true;
+                                    ++count;
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-
-        Point restore = Point(m1.mPos).scale(-1);
-        m1.hardTranslate(restore);
-        restore = Point(m2.mPos).scale(-1);;
-        m2.hardTranslate(restore);
     }
+
+    /* Send models back to their origin */
+    Point restore = Point(m1.mPos).scale(-1);
+    m1.hardTranslate(restore);
+    restore = Point(m2.mPos).scale(-1);;
+    m2.hardTranslate(restore);
 }
 
 
