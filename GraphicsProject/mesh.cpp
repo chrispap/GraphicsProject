@@ -261,7 +261,7 @@ void Mesh::calculateVolume()
                 Line ray (ray0, rayFar);
 
                 /* Count intersecting triangles */
-                list<int>alreadyIntersected;
+                set<int>alreadyIntersected;
                 alreadyIntersected.clear();
                 intersectionsCount=0;
                 list<int>::const_iterator ti;
@@ -271,9 +271,9 @@ void Mesh::calculateVolume()
                     for (ti = mAABBTriangles[bi].begin(); ti!=mAABBTriangles[bi].end(); ++ti) {
                         Triangle &t = mTriangles[*ti];
                         if ((Geom::mkcode(ray.start, t.getBox()) & Geom::mkcode(ray.end, t.getBox()))) continue;
-                        if ( Geom::intersects(t, ray) && (find(alreadyIntersected.begin(), alreadyIntersected.end(), *ti)==alreadyIntersected.end())) {
+                        if ( Geom::intersects(t, ray) && (alreadyIntersected.find(*ti)==alreadyIntersected.end())) {
                             ++intersectionsCount;
-                            alreadyIntersected.push_back(*ti);
+                            alreadyIntersected.insert(*ti);
                         }
                     }
                 }

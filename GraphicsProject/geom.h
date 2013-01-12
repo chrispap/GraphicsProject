@@ -417,6 +417,8 @@ public:
         if ( (c1 & c2)) return false;
         if ( !c1||!c2)  return true;
 
+        return true; // return prematurely because the code below is incorrect
+
         /* Find a plane of intersection */
         bit = -1;
         while (!((c1^c2) & (1<<(++bit))));
@@ -432,7 +434,7 @@ public:
         dl = Point(l.end).sub(l.start);
         tdl = -R.planeEquation(l.start)/(R.planeEquation(dl)- R.D);
         i = Point(l.start).add(dl.scale(tdl));
-        return 1;
+
         return (rand()%2)? intersects(b, Line(l.start, i)) : intersects(b, Line(i, l.end));
     }
 
@@ -488,13 +490,13 @@ public:
 
     static float distance (const Point p1, const Point p2)
     {
-        float dx = (p1.x - p2.x), 
+        float dx = (p1.x - p2.x),
               dy = (p1.y - p2.y),
               dz = (p1.z - p2.z);
         return sqrt(dx*dx + dy*dy + dz*dz);
     }
 
-    static float intersectionVolume (const Sphere &s1, const Sphere &s2) 
+    static float intersectionVolume (const Sphere &s1, const Sphere &s2)
     {
         bool s1GTs2 = s1.rad>s2.rad;
         float R = s1GTs2? s1.rad : s2.rad;
@@ -502,7 +504,7 @@ public:
         const Sphere &S = s1GTs2? s1 : s2;
         const Sphere &s = s1GTs2? s2 : s1;
         float d = distance(S.center, s.center);
-        
+
         if (d >= R+r) return 0.0;
         if (d <= R-r) return s.getVolume();
 
