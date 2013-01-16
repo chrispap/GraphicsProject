@@ -401,65 +401,85 @@ void Mesh::intersect( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<Trian
 
 
 /** Editing */
-static vector<Triangle> * tVec;
-static vector<Point>    * nVec;
-static vector<set<int> >* sVec;
-static bool NormalComparator (const int& l, const int& r)
+
+struct TriangleCost
 {
-    int compTrian[2]= {l, r};   // triangles for compare
-    float sum;                  // sum the dot products
-    float nprod[2];             // The mean dot product of each triangle's second vertex
-    Point n1,n2;                // Temp for normals
-    set<int>::iterator tli;     // iterator for vertex's triangles
+    int index;
+    float cost;
 
-    vector<Triangle> &trian = *tVec;
-    vector<Point> &norm     = *nVec;
-    vector<set<int> > &vtl  = *sVec;
+    static vector<Triangle>  * tVec;
+    static vector<Point>     * nVec;
+    static vector<set<int> > * sVec;
 
-    for (int i=0; i<2; i++)
+    TriangleCost (int _index, bool calcCost=false) : index(_index) { if (calcCost) calculateCost(); }
+
+    float calculateCost()
     {
+        float sum;                  // sum the dot products
+        float nprod;                // The mean dot product of each triangle's second vertex
+        Point n1,n2;                // Temp for normals
+        set<int>::iterator tli;     // iterator for vertex's triangles
+
+        vector<Triangle> &trian = *tVec;
+        vector<Point> &norm = *nVec;
+        vector<set<int> > &vtl = *sVec;
+
         sum = 0;
-        tli = vtl[trian[compTrian[i]].vi1].begin();
+        tli = vtl[trian[index].vi1].begin();
         n2  = trian[*tli].getNormal();
         ++tli;
-        while (tli != vtl[trian[compTrian[i]].vi1].end()) {
+
+        while (tli != vtl[trian[index].vi1].end()) {
             n1 = n2;
             n2= trian[*tli].getNormal();
             sum += Geom::dotprod(n1, n2);
             ++tli;
         }
-        nprod[i] = sum / vtl[trian[compTrian[i]].vi2].size();
+
+        cost = sum / vtl[trian[index].vi2].size();
     }
 
-    return nprod[0] > nprod[1];
-}
+    bool operator<(TriangleCost rhs) { return cost > rhs.cost; }
+
+    bool operator== (const TriangleCost &t) { return (index == t.index); }
+
+    bool operator!= (const TriangleCost &t) { return !(*this == t); }
+
+};
+
+vector<Triangle>  * TriangleCost::tVec;
+vector<Point>     * TriangleCost::nVec;
+vector<set<int> > * TriangleCost::sVec;
 
 void Mesh::simplify(int percent)
 {
+    /* Set these pointers */
+    TriangleCost::tVec = &mTriangles;
+    TriangleCost::nVec = &mVertexNormals;
+    TriangleCost::sVec = &mVertexTriangles;
+
     clock_t t = clock();
-    list<int> procList;         // List of candidate triangles for collapse
-    list<int>::iterator pli;    // Iterator for the list above
-    int ti, tx;                 // Indices of current triangles proccessed
+    list<TriangleCost> procList;            // List of candidate triangles for collapse
+    list<TriangleCost>::iterator pli;       // Iterator for the list above
+    int ti, tx;                             // Indices of current triangles proccessed
 
     /* Populate triangle list with all the triangles and sort it */
     pli = procList.begin();
     for (ti=0; ti < mTriangles.size(); ++ti)
-        procList.insert(pli, ti);
-
-    tVec = &mTriangles;
-    nVec = &mVertexNormals;
-    sVec = &mVertexTriangles;
-    procList.sort(NormalComparator);
+        pli = procList.insert(pli, TriangleCost(ti, true));
 
     int desiredRemovals = mTriangles.size()*(100-percent)/100;
     int removals = 0;
 
     /* Do the proccessing */
-    for (pli = procList.begin(); removals < desiredRemovals && pli != procList.end(); ++pli) {
+    while (procList.size() > 10 && removals < desiredRemovals) {
 
         /*0. Pick the next triangle for removal */
-        if (mTriangles[*pli].deleted) continue;
-        else ti = *pli;
+        ti = procList.begin()->index;
+        if (mTriangles[ti].deleted){
+            procList.erase(procList.begin());
+            continue;
+        }
 
         /*1. Pick two vertices that will form the collapsing edge */
         int vk = mTriangles[ti].vi1;                // Vertex we keep of the collapsing edge
@@ -478,7 +498,11 @@ void Mesh::simplify(int percent)
             else { if (*vxLi == ti) { ++vxLi; ++vkLi; }
                 else { tx = *vxLi; break; }}
         }
-        if (tx==-1 || mTriangles[tx].deleted) continue;
+
+        if (tx==-1 || mTriangles[tx].deleted) {
+            procList.erase(procList.begin());
+            continue;
+        }
 
         /*3. Delete the triangles of the collapsing edge */
         mTriangles[ti].deleted = 1;
@@ -493,7 +517,7 @@ void Mesh::simplify(int percent)
             }
         }
 
-        /* Place the new vertex in the middle ob the collapsed edge */
+        /* Place the new vertex in the middle of the collapsed edge */
         mVertices[vk] = Point(mVertices[vk]).add(mVertices[vx]).scale(0.5);
 
         /*6. Move the triangle list of the discarded vertex to the one we keeped */
@@ -504,15 +528,18 @@ void Mesh::simplify(int percent)
 
         /* 7. Remove all the triangles of this area of the process list */
         procList.remove(tx);
-        for (vkLi = vkList.begin(); vkLi != vkList.end(); ++vkLi)
+        procList.remove(ti);
+        for (vkLi = vkList.begin(); vkLi != vkList.end(); ++vkLi) {
             procList.remove(*vkLi);
+            procList.insert(procList.begin(),TriangleCost(*vkLi, true));
+        }
 
         removals += 2;
     }
 
     /* Clean up the data structures holding the model data */
     int from, to;
-    for (from=0; from < mTriangles.size(); /*-*/) {
+    for (from=0; from < mTriangles.size();   ) {
         if (mTriangles[from].deleted) {
             for (to=from; to+1<mTriangles.size() && mTriangles[to+1].deleted ; ++to);
             mTriangles.erase(mTriangles.begin()+from, mTriangles.begin()+to+1);

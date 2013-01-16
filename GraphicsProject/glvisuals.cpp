@@ -263,7 +263,7 @@ void GlVisuals::keyEvent (unsigned char key,  bool up, int x, int y, int modif)
     }
     else {
         if (isdigit(key))  sel_i = key-'0'-1;
-        else if (key==' ') sel_obj = (sel_obj+1)%2; 
+        else if (key==' ') sel_obj = (sel_obj+1)%2;
         else if (key=='0') sel_i = -1;
         else if (key=='d') simplifyObject(shift);
         else if (key=='r') resetScene();
@@ -300,7 +300,7 @@ void GlVisuals::arrowEvent (int dir, int modif)
             armadillo[sel_i]->move(t);
         else if (sel_obj==1 && sel_i<car.size())
             car[sel_i]->move(t);
-        
+
         intersectScene();
     }
 }
