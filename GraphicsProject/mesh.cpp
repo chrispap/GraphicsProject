@@ -413,7 +413,7 @@ struct TriangleCost
 
     TriangleCost (int _index, bool calcCost=false) : index(_index) { if (calcCost) calculateCost(); }
 
-    float calculateCost()
+    void calculateCost()
     {
         float sum;                  // sum the dot products
         float nprod;                // The mean dot product of each triangle's second vertex
