@@ -411,7 +411,7 @@ struct TriangleCost
     static vector<Point>     * nVec;
     static vector<set<int> > * sVec;
 
-    explicit TriangleCost (int _index, bool calcCost=false) : 
+    TriangleCost (int _index, bool calcCost=false) : 
       index(_index) 
     {
         if (calcCost) 
@@ -427,7 +427,6 @@ struct TriangleCost
     void calculateCost()
     {
         float sum;                  // sum the dot products
-        float nprod;                // The mean dot product of each triangle's second vertex
         Point n1,n2;                // Temp for normals
         set<int>::iterator tli;     // iterator for vertex's triangles
 
@@ -450,7 +449,7 @@ struct TriangleCost
         cost = sum / vtl[trian[index].vi2].size();
     }
 
-    bool operator<(TriangleCost rhs) { return cost > rhs.cost; }
+    bool operator<(TriangleCost rhs) { return cost < rhs.cost; }
 
     bool operator== (const TriangleCost &t) { return (index == t.index); }
 
@@ -540,10 +539,10 @@ void Mesh::simplify(int percent)
         vkList.erase(tx);
 
         /* 7. Remove all the triangles of this area of the process list */
-        procList.remove(TriangleCost(tx));
-        procList.remove(TriangleCost(ti));
+        procList.remove(tx);
+        procList.remove(ti);
         for (vkLi = vkList.begin(); vkLi != vkList.end(); ++vkLi) {
-            procList.remove(TriangleCost(*vkLi));
+            procList.remove(*vkLi);
             //procList.insert(procList.begin(),TriangleCost(*vkLi, true));
         }
 
