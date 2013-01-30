@@ -411,8 +411,19 @@ struct TriangleCost
     static vector<Point>     * nVec;
     static vector<set<int> > * sVec;
 
-    TriangleCost (int _index, bool calcCost=false) : index(_index) { if (calcCost) calculateCost(); }
+    explicit TriangleCost (int _index, bool calcCost=false) : 
+      index(_index) 
+    {
+        if (calcCost) 
+	  calculateCost(); 
+    }
 
+    TriangleCost (const TriangleCost &copyfrom)
+    {
+        index = copyfrom.index;
+	cost = copyfrom.cost;
+    }
+    
     void calculateCost()
     {
         float sum;                  // sum the dot products
@@ -467,13 +478,15 @@ void Mesh::simplify(int percent)
     pli = procList.begin();
     for (ti=0; ti < mTriangles.size(); ++ti)
         pli = procList.insert(pli, TriangleCost(ti, true));
-
+    
+    procList.sort();
+    
     int desiredRemovals = mTriangles.size()*(100-percent)/100;
     int removals = 0;
 
     /* Do the proccessing */
     while (procList.size() > 10 && removals < desiredRemovals) {
-
+      
         /*0. Pick the next triangle for removal */
         ti = procList.begin()->index;
         if (mTriangles[ti].deleted){
@@ -527,11 +540,11 @@ void Mesh::simplify(int percent)
         vkList.erase(tx);
 
         /* 7. Remove all the triangles of this area of the process list */
-        procList.remove(tx);
-        procList.remove(ti);
+        procList.remove(TriangleCost(tx));
+        procList.remove(TriangleCost(ti));
         for (vkLi = vkList.begin(); vkLi != vkList.end(); ++vkLi) {
-            procList.remove(*vkLi);
-            procList.insert(procList.begin(),TriangleCost(*vkLi, true));
+            procList.remove(TriangleCost(*vkLi));
+            //procList.insert(procList.begin(),TriangleCost(*vkLi, true));
         }
 
         removals += 2;

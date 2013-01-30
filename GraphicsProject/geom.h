@@ -27,28 +27,30 @@ struct Colour {
     Colour (unsigned char _r, unsigned char _g, unsigned char _b):r(_r), g(_g), b(_b) {}
 };
 
-struct Point {
+struct Vector3f {
     union {
         struct { float x, y, z;};
         float data[3];
     };
 
-    Point(float _x=0, float _y=0, float _z=0): x(_x), y(_y), z(_z) { }
+    Vector3f(float _x=0, float _y=0, float _z=0): x(_x), y(_y), z(_z) { }
 
-    bool operator== (const Point &p) { return (x == p.x && y == p.y && z == p.z); }
+    bool operator== (const Vector3f &p) { return (x == p.x && y == p.y && z == p.z); }
 
-    bool operator!= (const Point &p) { return !(*this == p); }
+    bool operator!= (const Vector3f &p) { return !(*this == p); }
 
     float r() { return sqrt(x*x+y*y+z*z);}
 
     void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
 
-    Point &add(const Point &v) { x += v.x; y += v.y; z += v.z; return *this;}
+    Vector3f &add(const Vector3f &v) { x += v.x; y += v.y; z += v.z; return *this;}
 
-    Point &sub(const Point &v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
+    Vector3f &sub(const Vector3f &v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
 
-    Point &scale(const float s) { x *= s; y *= s; z *= s; return *this; }
+    Vector3f &scale(const float s) { x *= s; y *= s; z *= s; return *this; }
 };
+
+typedef Vector3f Point;
 
 struct Line {
     Point start, end;
