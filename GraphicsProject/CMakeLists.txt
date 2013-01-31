@@ -1,6 +1,7 @@
 PROJECT (GraphicsProject)
 SET (SRC main.cpp mesh.cpp glvisuals.cpp geom.h )
 SET (LINK_LIB GL GLU glut)
-set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_CXX_FLAGS "-Wall")
 ADD_EXECUTABLE (graphproj ${SRC})
 TARGET_LINK_LIBRARIES (graphproj ${LINK_LIB})

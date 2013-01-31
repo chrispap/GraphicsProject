@@ -118,7 +118,7 @@ void GlVisuals::simplifyObject(bool duplicate)
         sel_i = model.size()-1;
     }
 
-    model.back()->simplify(1);
+    model.back()->simplify(9); // 9% so that we reach the limit of reduction for this step
     intersectScene();
 }
 

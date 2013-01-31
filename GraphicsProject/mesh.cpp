@@ -143,7 +143,7 @@ void Mesh::createBoundingBoxHierarchy()
             int dim=0;
             Box boxL, boxR;
             if (mAABB[parent].getXSize() > mAABB[parent].getYSize())
-                 dim = (mAABB[parent].getXSize() > mAABB[parent].getZSize())? 0 : 1;
+                dim = (mAABB[parent].getXSize() > mAABB[parent].getZSize())? 0 : 1;
             else dim = (mAABB[parent].getYSize() > mAABB[parent].getZSize())? 1 : 2;
             float lim = (max.data[dim] + min.data[dim])/2;
             if (dim==0) {
@@ -411,17 +411,17 @@ struct TriangleCost
     static vector<Point>     * nVec;
     static vector<set<int> > * sVec;
 
-    TriangleCost (int _index, bool calcCost=false) : 
-      index(_index) 
+    TriangleCost (int _index, bool calcCost=false) :
+        index(_index)
     {
-        if (calcCost) 
-	  calculateCost(); 
+        if (calcCost)
+            calculateCost();
     }
 
     TriangleCost (const TriangleCost &copyfrom)
     {
         index = copyfrom.index;
-	cost = copyfrom.cost;
+        cost = copyfrom.cost;
     }
     
     void calculateCost()
@@ -431,22 +431,21 @@ struct TriangleCost
         set<int>::iterator tli;     // iterator for vertex's triangles
 
         vector<Triangle> &trian = *tVec;
-        vector<Point> &norm = *nVec;
         vector<set<int> > &vtl = *sVec;
 
-        sum = 0;
         tli = vtl[trian[index].vi1].begin();
         n2  = trian[*tli].getNormal();
         ++tli;
+        sum = 0;
 
         while (tli != vtl[trian[index].vi1].end()) {
             n1 = n2;
-            n2= trian[*tli].getNormal();
+            n2 = trian[*tli].getNormal();
             sum += Geom::dotprod(n1, n2);
             ++tli;
         }
 
-        cost = sum / vtl[trian[index].vi2].size();
+        cost = sum / (vtl[trian[index].vi1].size()-1);
     }
 
     bool operator<(TriangleCost rhs) { return cost < rhs.cost; }
@@ -485,7 +484,7 @@ void Mesh::simplify(int percent)
 
     /* Do the proccessing */
     while (procList.size() > 10 && removals < desiredRemovals) {
-      
+
         /*0. Pick the next triangle for removal */
         ti = procList.begin()->index;
         if (mTriangles[ti].deleted){
@@ -539,12 +538,13 @@ void Mesh::simplify(int percent)
         vkList.erase(tx);
 
         /* 7. Remove all the triangles of this area of the process list */
+        procList.erase(procList.begin()); // Faster way for: procList.remove(ti);
         procList.remove(tx);
-        procList.remove(ti);
         for (vkLi = vkList.begin(); vkLi != vkList.end(); ++vkLi) {
             procList.remove(*vkLi);
-            //procList.insert(procList.begin(),TriangleCost(*vkLi, true));
         }
+
+        //procList.sort(); // Won't improve quality, so dont do it.
 
         removals += 2;
     }
