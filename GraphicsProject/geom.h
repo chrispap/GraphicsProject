@@ -1,3 +1,9 @@
+/** @file geom.h
+ * Defintion and inline implementation of various geometrical classes.
+ *
+ * Containts classes used to manipulate geometrical shapes.
+ */
+
 #ifndef GEOM_H
 #define GEOM_H
 
@@ -21,12 +27,18 @@ static const float PI = 3.14159f;
 
 using namespace std;
 
+/**
+ * Struct that containts the data of a color in rgb byte format
+ */
 struct Colour {
     union {    struct { unsigned char r, g, b;};
     unsigned char data[3];};
     Colour (unsigned char _r, unsigned char _g, unsigned char _b):r(_r), g(_g), b(_b) {}
 };
 
+/**
+ * Struct that containts 3 float numbers.
+ */
 struct Vector3f {
     union {
         struct { float x, y, z;};
@@ -50,10 +62,14 @@ struct Vector3f {
     Vector3f &scale(const float s) { x *= s; y *= s; z *= s; return *this; }
 };
 
+/**
+ * Class that containts a point in the 3D space.
+ */
 typedef Vector3f Point;
 
 struct Line {
-    Point start, end;
+    Point start; ///< The starting edge of the line
+    Point end;   ///< The ending edge of the line
 
     Line(): start(0,0,0), end(0,0,0) {}
 
@@ -62,8 +78,12 @@ struct Line {
     ~Line(void) {}
 };
 
+/**
+ * Struct that containts a Box
+ */
 struct Box {
-    Point min, max;
+    Point min; ///< The bottom-left-close corner of the box
+    Point max; ///< The top-right-far corner of the box
 
     Box(): min(0,0,0), max(0,0,0) {}
 
@@ -177,9 +197,12 @@ struct Box {
     }
 };
 
+/**
+ * Struct that contains a sphere.
+ */
 struct Sphere {
-    Point center;
-    float rad;
+    Point center;   ///< The centre of the sphere.
+    float rad;      ///< The radius of the sphere.
 
     Sphere (): center(0,0,0), rad(0) {}
 
@@ -328,6 +351,13 @@ struct Sphere {
 
 };
 
+/**
+ * Struct that contains a triangle.
+ *
+ * Doesn't contain the actual data for the 3 vertices.
+ * Instead, contains indices to a vector and a pointer
+ * to that vector.
+ */
 struct Triangle {
     union { struct { int vi1, vi2, vi3;}; int v[3];};   // Indices to the vector below
     vector<Point> *vecList;     // Pointer to the vector containing the vertices

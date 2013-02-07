@@ -1,3 +1,7 @@
+/** @file mesh.cpp
+ * Implementation of class Mesh
+ */
+
 #include <stdio.h>
 #include <ctime>
 #include <cfloat>
@@ -19,7 +23,6 @@
 #include <GL/glu.h>
 #endif
 
-/** Constructrors */
 Mesh::Mesh(string filename, bool ccw):
     mRot(0,0,0),
     mPos(0,0,0),
@@ -400,8 +403,7 @@ void Mesh::intersect( Mesh &m1,  Mesh &m2, vector<Point> &vertices, vector<Trian
 }
 
 
-/** Editing */
-
+/* Editing */
 struct TriangleCost
 {
     int index;
@@ -423,7 +425,7 @@ struct TriangleCost
         index = copyfrom.index;
         cost = copyfrom.cost;
     }
-    
+
     void calculateCost()
     {
         float sum;                  // sum the dot products
@@ -476,9 +478,9 @@ void Mesh::simplify(int percent)
     pli = procList.begin();
     for (ti=0; ti < mTriangles.size(); ++ti)
         pli = procList.insert(pli, TriangleCost(ti, true));
-    
+
     procList.sort();
-    
+
     int desiredRemovals = mTriangles.size()*(100-percent)/100;
     int removals = 0;
 
@@ -641,7 +643,7 @@ void Mesh::centerAlign()
 }
 
 
-/** Drawing */
+/* Drawing */
 void Mesh::drawVoxels(Colour col)
 {
     vector<Box>::const_iterator pi;

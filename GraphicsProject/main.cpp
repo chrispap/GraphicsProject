@@ -37,14 +37,14 @@ void mkModif(int *modif)
 
 void mouseEvent(int button, int state, int x, int y)
 {
-	modif = glutGetModifiers();
-	mkModif(&modif);
+    modif = glutGetModifiers();
+    mkModif(&modif);
 
-    if (state == GLUT_UP) 
-        return;    
+    if (state == GLUT_UP)
+        return;
 
     if ((button == 3) || (button == 4)) { // Wheel event
-		cout << "???";
+        cout << "???";
         visuals->mouseWheel(button==3, modif);
         glutPostRedisplay();
 
@@ -56,18 +56,18 @@ void mouseEvent(int button, int state, int x, int y)
 void mouseMotion(int x, int y)
 {
 #ifdef __linux__
-	modif = glutGetModifiers();
+    modif = glutGetModifiers();
 #endif
     mkModif(&modif);
-    
+
     visuals->mouseMoved(x,y, modif);
     glutPostRedisplay();
 }
 
 void KeyEvent(unsigned char key, bool updown, int x, int y)
 {
-	modif = glutGetModifiers();
-	mkModif(&modif);
+    modif = glutGetModifiers();
+    mkModif(&modif);
 
     if (key==27 ) exit(0);
     visuals->keyEvent(key, updown, x, y, modif);
@@ -87,8 +87,8 @@ void KeyDownEvent(unsigned char key, int x, int y)
 void SpeciaEvent (int key, int x, int y)
 {
     ArrowDir dir;
-	modif = glutGetModifiers();
-	mkModif(&modif);
+    modif = glutGetModifiers();
+    mkModif(&modif);
 
     if      (key == GLUT_KEY_UP) dir = UP;
     else if (key == GLUT_KEY_DOWN) dir = DOWN;

@@ -1,3 +1,7 @@
+/** @file glvisuals.cpp
+ * Implementation of class GlVisuals.
+ */
+
 #include <stdio.h>
 #include <iostream>
 #include <vector>
