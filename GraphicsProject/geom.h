@@ -13,14 +13,10 @@
 #include <list>
 #include <math.h>
 
-#ifndef QT_CORE_LIB
 #ifdef __linux__
 #include <GL/glut.h>
 #else
 #include "gl/glut.h"
-#endif
-#else
-#include <GL/glu.h>
 #endif
 
 static const float PI = 3.14159f;
@@ -31,9 +27,21 @@ using namespace std;
  * Struct that containts the data of a color in rgb byte format
  */
 struct Colour {
-    union {    struct { unsigned char r, g, b;};
-    unsigned char data[3];};
-    Colour (unsigned char _r, unsigned char _g, unsigned char _b):r(_r), g(_g), b(_b) {}
+    union {
+        struct {
+            unsigned char r;
+            unsigned char g;
+            unsigned char b;
+        };
+        unsigned char data[3];
+    };
+
+    Colour (unsigned char _r, unsigned char _g, unsigned char _b):
+        r(_r),
+        g(_g),
+        b(_b)
+    {
+    }
 };
 
 /**
@@ -41,25 +49,92 @@ struct Colour {
  */
 struct Vector3f {
     union {
-        struct { float x, y, z;};
+        struct {
+            float x;
+            float y;
+            float z;
+        };
         float data[3];
     };
 
-    Vector3f(float _x=0, float _y=0, float _z=0): x(_x), y(_y), z(_z) { }
+    Vector3f (float _x=0, float _y=0, float _z=0):
+        x(_x),
+        y(_y),
+        z(_z)
+    {
+    }
 
-    bool operator== (const Vector3f &p) { return (x == p.x && y == p.y && z == p.z); }
+    /**
+     * Prints the values of all dimensions is stdout.
+     */
+    void print() {
+        cout << "(" << x << ", " << y << ", " << z << ")" << endl;
+    }
 
-    bool operator!= (const Vector3f &p) { return !(*this == p); }
+    /**
+     * Compares vectors for equality in all dimensions.
+     */
+    bool operator== (const Vector3f &p) {
+        return (x == p.x && y == p.y && z == p.z);
+    }
 
-    float r() { return sqrt(x*x+y*y+z*z);}
+    /**
+     * Compares vectors for inequality in all dimensions.
+     */
+    bool operator!= (const Vector3f &p) {
+        return !(*this == p);
+    }
 
-    void print() { cout << "(" << x << ", " << y << ", " << z << ")" << endl;}
+    /**
+     * Returns the length of this vector.
+     */
+    float length() {
+        return sqrt(x*x+y*y+z*z);
+    }
 
-    Vector3f &add(const Vector3f &v) { x += v.x; y += v.y; z += v.z; return *this;}
+    /**
+     * Normalize the vector so that its length is 1.
+     */
+    Vector3f &normalize() {
+        scale(1.0f/length());
+        return *this;
+    }
 
-    Vector3f &sub(const Vector3f &v) { x -= v.x; y -= v.y; z -= v.z; return *this; }
+    /**
+     * Adds a vector to this vector.
+     * @param [in] v The vector that is added to the original vector.
+     * @return referrence to original vector.
+     */
+    Vector3f &add(const Vector3f &v) {
+        x += v.x;
+        y += v.y;
+        z += v.z;
+        return *this;
+    }
 
-    Vector3f &scale(const float s) { x *= s; y *= s; z *= s; return *this; }
+    /**
+     * Subs a vector from this vector.
+     * @param [in] v The vector that is subtracted from the original vector.
+     * @return referrence to original vector.
+     */
+    Vector3f &sub(const Vector3f &v) {
+        x -= v.x;
+        y -= v.y;
+        z -= v.z;
+        return *this;
+    }
+
+    /**
+     * Multiplies the vector with a scalar float value
+     * @param [in] s The float value with which all dimensions are multiplied
+     * @return referrence to original vector.
+     */
+    Vector3f &scale(const float s) {
+        x *= s;
+        y *= s;
+        z *= s;
+        return *this;
+    }
 };
 
 /**
@@ -67,13 +142,24 @@ struct Vector3f {
  */
 typedef Vector3f Point;
 
+/**
+ * Struct that contains a line segment.
+ */
 struct Line {
     Point start; ///< The starting edge of the line
     Point end;   ///< The ending edge of the line
 
-    Line(): start(0,0,0), end(0,0,0) {}
+    Line():
+        start(0,0,0),
+        end(0,0,0)
+    {
+    }
 
-    Line (const Point &_start, const Point &_end): start(_start), end(_end) {}
+    Line (const Point &_start, const Point &_end):
+        start(_start),
+        end(_end)
+    {
+    }
 
     ~Line(void) {}
 };
@@ -85,10 +171,22 @@ struct Box {
     Point min; ///< The bottom-left-close corner of the box
     Point max; ///< The top-right-far corner of the box
 
-    Box(): min(0,0,0), max(0,0,0) {}
+    Box():
+        min(0,0,0),
+        max(0,0,0)
+    {
+    }
 
-    Box(const Point &vmin, const Point &vmax): min(vmin), max(vmax) {}
+    Box(const Point &vmin, const Point &vmax):
+        min(vmin),
+        max(vmax)
+    {
+    }
 
+    /**
+     * Constructs the smallest box that contains 3 points.
+     * Bounding box of triangle.
+     **/
     Box(const Point &v1, const Point &v2, const Point &v3) {
         min = Point(std::min(v1.x, std::min(v2.x, v3.x)),
                     std::min(v1.y, std::min(v2.y, v3.y)),
@@ -99,6 +197,11 @@ struct Box {
                     std::max(v1.z, std::max(v2.z, v3.z)));
     }
 
+    /**
+     * Construct the smallest box that contains all the points of a vector.
+     * (Bounding Box of the points)
+     * @param [in] vertices Vector that contains all the points to be tested.
+     */
     Box(const vector<Point> &vertices) {
         Point min,max;
         min.x = min.y = min.z = FLT_MAX;
@@ -116,35 +219,91 @@ struct Box {
         this->max = max;
     }
 
-    Box &forceMax (Box &maxBox) {
-        if (min.x < maxBox.min.x) min.x = maxBox.min.x;
-        if (min.y < maxBox.min.y) min.y = maxBox.min.y;
-        if (min.z < maxBox.min.z) min.z = maxBox.min.z;
-        if (max.x > maxBox.max.x) max.x = maxBox.max.x;
-        if (max.y > maxBox.max.y) max.y = maxBox.max.y;
-        if (max.z > maxBox.max.z) max.z = maxBox.max.z;
+    /**
+     * Crops a box.
+     *
+     * Ensures that every dimension of the original box is
+     * less or equal from the respective dimension of the cropBox.
+     * @param [in] cropBox The box that is used for the crop.
+     */
+    Box &cropBox (Box &cropBox) {
+        if (min.x < cropBox.min.x) min.x = cropBox.min.x;
+        if (min.y < cropBox.min.y) min.y = cropBox.min.y;
+        if (min.z < cropBox.min.z) min.z = cropBox.min.z;
+        if (max.x > cropBox.max.x) max.x = cropBox.max.x;
+        if (max.y > cropBox.max.y) max.y = cropBox.max.y;
+        if (max.z > cropBox.max.z) max.z = cropBox.max.z;
         return *this;
     }
 
-    float getXSize() const { return max.x - min.x;}
+    float getXSize() const {
+        return max.x - min.x;
+    }
 
-    float getYSize() const { return max.y - min.y;}
+    float getYSize() const {
+        return max.y - min.y;
+    }
 
-    float getZSize() const { return max.z - min.z;}
+    float getZSize() const {
+        return max.z - min.z;
+    }
 
-    Point getSize() const { return Point(getXSize(),getYSize(), getZSize());}
+    Point getSize() const {
+        return Point(getXSize(),getYSize(), getZSize());
+    }
 
-    float getMinSize() const { return std::min(getXSize(),std::min(getYSize(),getZSize()));}
+    /**
+     * Get the minimum of the 3 dimensions.
+     */
+    float getMinSize() const {
+        return std::min(getXSize(),std::min(getYSize(),getZSize()));
+    }
 
-    float getMaxSize() const { return std::max(getXSize(),std::max(getYSize(),getZSize()));}
+    /**
+     * Get the maximum of the 3 dimensions.
+     */
+    float getMaxSize() const {
+        return std::max(getXSize(),std::max(getYSize(),getZSize()));
+    }
 
-    float getVolume() const { return fabs((max.x - min.x)*(max.y - min.y)*(max.z - min.z)); }
+    /**
+     * Get the volume of the box.
+     */
+    float getVolume() const {
+        return fabs((max.x - min.x)*(max.y - min.y)*(max.z - min.z));
+    }
 
-    Box &add(const Point &v) { min.add(v); max.add(v); return *this; }
+    /**
+     * Translates the box by adding the point v to both corners
+     * that define the box.
+     * @param v Translation distnace.
+     */
+    Box &add(const Point &v) {
+        min.add(v);
+        max.add(v);
+        return *this;
+    }
 
-    Box &sub(const Point &v) {min.sub(v); max.sub(v);return *this; }
+    /**
+     * Translates the box by adding the point -v to both corners
+     * that define the box.
+     * @param v Translation distnace * (-1).
+     */
+    Box &sub(const Point &v) {
+        min.sub(v);
+        max.sub(v);
+        return *this;
+    }
 
-    Box &scale(const float s) {min.scale(s); max.scale(s);return *this;}
+    /**
+     * Scales the box by multiplying both corners with a value.
+     * @param s The value with which is the box's corners are multiplied.
+     */
+    Box &scale(const float s) {
+        min.scale(s);
+        max.scale(s);
+        return *this;
+    }
 
     void draw(const Colour &col, unsigned char a=0) const {
         static Point p[8];
@@ -204,7 +363,11 @@ struct Sphere {
     Point center;   ///< The centre of the sphere.
     float rad;      ///< The radius of the sphere.
 
-    Sphere (): center(0,0,0), rad(0) {}
+    Sphere ():
+        center(0,0,0),
+        rad(0)
+    {
+    }
 
     Sphere (const Point &c, float r): center(c), rad(r) {}
 
@@ -260,14 +423,17 @@ struct Sphere {
         zspan = dx*dx + dy*dy + dz*dz;
 
         /* Set points dia1 & dia2 to the maximally separated pair */
-        dia1 = xmin; dia2 = xmax; /* assume xspan biggest */
+        dia1 = xmin;
+        dia2 = xmax; /* assume xspan biggest */
         maxspan = xspan;
         if (yspan>maxspan) {
             maxspan = yspan;
-            dia1 = ymin; dia2 = ymax;
+            dia1 = ymin;
+            dia2 = ymax;
         }
         if (zspan>maxspan) {
-            dia1 = zmin; dia2 = zmax;
+            dia1 = zmin;
+            dia2 = zmax;
         }
 
         /* dia1,dia2 is a diameter of initial sphere */
@@ -323,15 +489,30 @@ struct Sphere {
         }
     }
 
-    float getVolume() const { return (4.0/3.0)*PI*(rad*rad*rad); }
+    float getVolume() const {
+        return (4.0/3.0)*PI*(rad*rad*rad);
+    }
 
-    Sphere &add(const Point &v) { center.add(v); return *this;}
+    Sphere &add(const Point &v) {
+        center.add(v);
+        return *this;
+    }
 
-    Sphere &sub(const Point &v) { center.sub(v); return *this;}
+    Sphere &sub(const Point &v) {
+        center.sub(v);
+        return *this;
+    }
 
-    Sphere &scale (const float s) { center.scale(s); rad*=s; return *this;}
+    Sphere &scale (const float s) {
+        center.scale(s);
+        rad*=s;
+        return *this;
+    }
 
-    bool contains (const Point &v) const { float dx=center.x-v.x, dy=center.y-v.y, dz=center.z-v.z;  return dx*dx+dy*dy+dz*dz < rad*rad;}
+    bool contains (const Point &v) const {
+        float dx=center.x-v.x, dy=center.y-v.y, dz=center.z-v.z;
+        return dx*dx+dy*dy+dz*dz < rad*rad;
+    }
 
     void draw(const Colour &col, unsigned char a=0) const {
         glPushMatrix();
@@ -357,24 +538,43 @@ struct Sphere {
  * Doesn't contain the actual data for the 3 vertices.
  * Instead, contains indices to a vector and a pointer
  * to that vector.
+ *
+ * Also, it contains A,B,C,D coefficients of the plane equation of
+ * the triangles plane. This is done in order to calculate fast the
+ * plane equation and the normal.
  */
 struct Triangle {
-    union { struct { int vi1, vi2, vi3;}; int v[3];};   // Indices to the vector below
-    vector<Point> *vecList;     // Pointer to the vector containing the vertices
-    float A, B, C, D;           // Plane equation coefficients
-    Box box;                    // Bounding box of the triangle
-    bool deleted;               // Flag indicating that a triangle should be considered deleted
+    union {
+        struct {
+            int vi1;
+            int vi2;
+            int vi3;
+        };                  ///< Indices to the vecList
+        int v[3];           ///< Give access to the vertices by index
+    };
+
+    vector<Point> *vecList; ///< Pointer to the vector containing the vertices
+
+    float A;                ///< Plane equation coefficient A
+    float B;                ///< Plane equation coefficient B
+    float C;                ///< Plane equation coefficient C
+    float D;                ///< Plane equation coefficient D
+
+    Box box;                ///< Bounding box of the triangle
+
+    bool deleted;           ///< Flag indicating that a triangle should be considered deleted
 
     Triangle(vector<Point> *_vecList=NULL, int _v1=0, int _v2=0, int _v3=0):
-            vi1(_v1),
-            vi2(_v2),
-            vi3(_v3),
-            vecList(_vecList),
-            deleted(0)
+        vi1(_v1),
+        vi2(_v2),
+        vi3(_v3),
+        vecList(_vecList),
+        deleted(0)
     {
         update();
     }
 
+    /** Calculate the coefficients of the plane from the vertices. */
     void update() {
         box = Box(v1(), v2(), v3());
         A = v1().y*(v2().z-v3().z) + v2().y*(v3().z-v1().z) + v3().y*(v1().z-v2().z);
@@ -383,44 +583,120 @@ struct Triangle {
         D = -v1().x*(v2().y*v3().z-v3().y*v2().z) -v2().x*(v3().y*v1().z-v1().y*v3().z) -v3().x*(v1().y*v2().z-v2().y*v1().z);
     }
 
-    const Point &v1() const { return (*vecList)[vi1];}
+    const Point &v1() const {
+        return (*vecList)[vi1];
+    }
 
-    const Point &v2() const { return (*vecList)[vi2];}
+    const Point &v2() const {
+        return (*vecList)[vi2];
+    }
 
-    const Point &v3() const { return (*vecList)[vi3];}
+    const Point &v3() const {
+        return (*vecList)[vi3];
+    }
 
-    const Box &getBox() const { return box;}
+    /** Returns the bounding box of the triangle */
+    const Box &getBox() const {
+        return box;
+    }
 
-    const Point getNormal() const { Point n(A,B,C); return n.scale(1.0f/n.r());}
+    /** Returns the normal of this triangle */
+    const Point getNormal() const {
+        return Point(A,B,C).normalize();
+    }
 
-    const Point getCenter() const { return Point(v1()).add(v2()).add(v3()).scale(1.0f/3);}
+    /** Returns the center point of this triangle */
+    const Point getCenter() const {
+        return Point(v1()).add(v2()).add(v3()).scale(1.0f/3);
+    }
 
-    float planeEquation(const Point &r) const { return A*r.x + B*r.y + C*r.z + D;}
+    /**
+     * Evaluates the plane equation of this triangle's plane
+     * for the given point.
+     * @param r The point at which we find the value of the plane equation.
+     * @return The value of the plane equation at the given point.
+     */
+    float planeEquation(const Point &r) const {
+        return A*r.x + B*r.y + C*r.z + D;
+    }
 };
 
 class Geom {
 
 public:
-    static Point crossprod (const Point &v1, const Point &v2)
+
+    /**
+     * Calculates the cross product of two vectors
+     * @param [in]  v1 Vector one.
+     * @param [out] v2 Vector two.
+     * @return The vector that is the result of the cross product.
+     */
+    static Vector3f crossprod (const Vector3f &v1, const Vector3f &v2)
     {
-        return Point( v1.y * v2.z - v1.z * v2.y,
-                      v1.z * v2.x - v1.x * v2.z,
-                      v1.x * v2.y - v1.y * v2.x );
+        return Vector3f( v1.y * v2.z - v1.z * v2.y,
+                         v1.z * v2.x - v1.x * v2.z,
+                         v1.x * v2.y - v1.y * v2.x );
     }
 
-    static float dotprod (const Point &v1, const Point &v2)
+    /**
+     * Calculates the dot product of two vectors
+     * @param [in]  v1 Vector one.
+     * @param [out] v2 Vector two.
+     * @return The vector that is the result of the dot product.
+     */
+    static float dotprod (const Vector3f &v1, const Vector3f &v2)
     {
         return v1.x * v2.x +
-                v1.y * v2.y +
-                v1.z * v2.z;
+               v1.y * v2.y +
+               v1.z * v2.z;
     }
 
+    /**
+     * Calculates the distance of two points.
+     */
+    static float distance (const Point p1, const Point p2)
+    {
+        float dx = (p1.x - p2.x),
+              dy = (p1.y - p2.y),
+              dz = (p1.z - p2.z);
+        return sqrt(dx*dx + dy*dy + dz*dz);
+    }
+
+    /**
+     * Calculates the volume of the intersection of two spheres.
+     */
+    static float intersectionVolume (const Sphere &s1, const Sphere &s2)
+    {
+        bool s1GTs2 = s1.rad>s2.rad;
+        float R = s1GTs2? s1.rad : s2.rad;
+        float r = s1GTs2? s2.rad : s1.rad;
+        const Sphere &S = s1GTs2? s1 : s2;
+        const Sphere &s = s1GTs2? s2 : s1;
+        float d = distance(S.center, s.center);
+
+        if (d >= R+r) return 0.0;
+        if (d <= R-r) return s.getVolume();
+
+        float tmp1 = R+r-d;
+        tmp1 = tmp1*tmp1;
+        float tmp2 = (d*d) + (2.0*d*r) - (3.0*r*r) + (2.0*d*R) + (6.0*R*r) - (3.0*R*R);
+        return ((PI * tmp1 * tmp2)) / (12.0*d);
+
+    }
+
+    /**
+     * Produces the code that is used from the
+     * Cohen – Sutherland algorithm.
+     */
     static char mkcode (const Point &v, const Box &b)
     {
         char code = 0x00;
-        if (v.z>=b.max.z) code|=0x01; else if (v.z<=b.min.z) code |=0x02;
-        if (v.y>=b.max.y) code|=0x04; else if (v.y<=b.min.y) code |=0x08;
-        if (v.x>=b.max.x) code|=0x10; else if (v.x<=b.min.x) code |=0x20;
+        if (v.z>=b.max.z) code|=0x01;
+        else if (v.z<=b.min.z) code |=0x02;
+        if (v.y>=b.max.y) code|=0x04;
+        else if (v.y<=b.min.y) code |=0x08;
+        if (v.x>=b.max.x) code|=0x10;
+        else if (v.x<=b.min.x) code |=0x20;
         return code;
     }
 
@@ -508,42 +784,16 @@ public:
 
         /* Stin synexeia elegxoume akmh-akmh. */
         else if (
-                intersects(t1, Line(t2.v1(), t2.v2())) ||
-                intersects(t1, Line(t2.v2(), t2.v3())) ||
-                intersects(t1, Line(t2.v3(), t2.v1())) ||
-                intersects(t2, Line(t1.v1(), t1.v2())) ||
-                intersects(t2, Line(t1.v2(), t1.v3())) ||
-                intersects(t2, Line(t1.v3(), t1.v1())))
+            intersects(t1, Line(t2.v1(), t2.v2())) ||
+            intersects(t1, Line(t2.v2(), t2.v3())) ||
+            intersects(t1, Line(t2.v3(), t2.v1())) ||
+            intersects(t2, Line(t1.v1(), t1.v2())) ||
+            intersects(t2, Line(t1.v2(), t1.v3())) ||
+            intersects(t2, Line(t1.v3(), t1.v1())))
             return true;
 
         /* Telika den ypaarxei sygkrousi. */
         else return false;
-    }
-
-    static float distance (const Point p1, const Point p2)
-    {
-        float dx = (p1.x - p2.x),
-              dy = (p1.y - p2.y),
-              dz = (p1.z - p2.z);
-        return sqrt(dx*dx + dy*dy + dz*dz);
-    }
-
-    static float intersectionVolume (const Sphere &s1, const Sphere &s2)
-    {
-        bool s1GTs2 = s1.rad>s2.rad;
-        float R = s1GTs2? s1.rad : s2.rad;
-        float r = s1GTs2? s2.rad : s1.rad;
-        const Sphere &S = s1GTs2? s1 : s2;
-        const Sphere &s = s1GTs2? s2 : s1;
-        float d = distance(S.center, s.center);
-
-        if (d >= R+r) return 0.0;
-        if (d <= R-r) return s.getVolume();
-
-        float tmp1 = R+r-d; tmp1 = tmp1*tmp1;
-        float tmp2 = (d*d) + (2.0*d*r) - (3.0*r*r) + (2.0*d*R) + (6.0*R*r) - (3.0*R*R);
-        return ((PI * tmp1 * tmp2)) / (12.0*d);
-
     }
 
 };

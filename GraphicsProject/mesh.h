@@ -11,14 +11,10 @@
 #include <set>
 #include "geom.h"
 
-#ifndef QT_CORE_LIB
 #ifdef __linux__
 #include <GL/glut.h>
 #else
 #include "gl/glut.h"
-#endif
-#else
-#include <GL/glu.h>
 #endif
 
 using namespace std;
@@ -59,12 +55,12 @@ class Mesh
     void createNormals ();                      ///< Create a normal for each vertex
     void hardTranslate (const Point &p);        ///< Translation by adding the displacement to the vertices
 
-    void drawTriangles (Colour col, bool wire=0);
-    void drawSphere (Colour col, bool hier=0);
-    void drawAABB (Colour col, bool hier=0);
-    void drawTriangleBoxes (Colour col);
-    void drawNormals (Colour col);
-    void drawVoxels (Colour col);
+    void drawTriangles (Colour col,bool wire=0);///< Draw the triangles. This is the actual model drawing.
+    void drawSphere (Colour col, bool hier=0);  ///< Draw the boundig sphere of the model
+    void drawAABB (Colour col, bool hier=0);    ///< Draw the bounding box of the object
+    void drawTriangleBoxes (Colour col);        ///< Draw the bounding boxes of each triangle
+    void drawNormals (Colour col);              ///< Draw the normal vectors of each vertex
+    void drawVoxels (Colour col);               ///< Draw the cubes that were used to calculate the volume of the object
 
     static void loadObj (string filename,       ///< Populate vertex | triangle lists from file
         vector<Point> &vertices, vector<Triangle> &triangles, bool ccw=0);

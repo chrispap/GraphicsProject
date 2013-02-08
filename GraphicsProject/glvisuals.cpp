@@ -10,14 +10,10 @@
 #include "glvisuals.h"
 #include "mesh.h"
 
-#ifndef QT_CORE_LIB
 #ifdef __linux__
 #include <GL/glut.h>
 #else
 #include "gl/glut.h"
-#endif
-#else
-#include <GL/glu.h>
 #endif
 
 using namespace std;
@@ -158,7 +154,7 @@ void GlVisuals::drawAxes()
 }
 
 
-/** OpenGL Callback Methods */
+/* OpenGL Callback Methods */
 void GlVisuals::glInitialize()
 {
     static GLfloat ambientLight[] = { 1, 1, 1, 1 };
@@ -246,7 +242,7 @@ void GlVisuals::returnFromPixelMode()
 }
 
 
-/** UI Methods */
+/* UI Methods */
 void GlVisuals::setEllapsedMillis(int millis)
 {
     // In the first call calibrate.

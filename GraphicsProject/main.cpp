@@ -1,3 +1,11 @@
+/** @file main.cpp
+ * Entry point of the application.
+ *
+ * Create a window using GLUT, and handle GLUT's events
+ * by dispatching them to the respective method of the
+ * instance of the class GlVisuals.
+ */
+
 #include <stdio.h>
 #include "glvisuals.h"
 
@@ -6,6 +14,7 @@
 #else
 #include "gl/glut.h"
 #endif
+
 
 static GlVisuals *visuals;
 static int modif=0;

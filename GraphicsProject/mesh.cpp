@@ -13,14 +13,10 @@
 #include "mesh.h"
 #include "geom.h"
 
-#ifndef QT_CORE_LIB
 #ifdef __linux__
 #include <GL/glut.h>
 #else
 #include "gl/glut.h"
-#endif
-#else
-#include <GL/glu.h>
 #endif
 
 Mesh::Mesh(string filename, bool ccw):
@@ -195,8 +191,8 @@ void Mesh::createBoundingBoxHierarchy()
                     }
                 }
             }
-            mAABB[chL] = Box(minL, maxL).forceMax(boxL);
-            mAABB[chR] = Box(minR, maxR).forceMax(boxR);
+            mAABB[chL] = Box(minL, maxL).cropBox(boxL);
+            mAABB[chR] = Box(minR, maxR).cropBox(boxR);
         }
     }
 }
