@@ -298,8 +298,8 @@ void Mesh::calculateVolume()
         for (int bi=BVL_SIZE(bvlevel-1); bi< BVL_SIZE(bvlevel); ++bi) {
             bVol += mAABB[bi].getVolume();
             sVol += mSphere[bi].getVolume();
-            for (int bii=bi+1; bii< BVL_SIZE(bvlevel); ++bii)
-                sVol -= Geom::intersectionVolume(mSphere[bi], mSphere[bii]);
+            //for (int bii=bi+1; bii< BVL_SIZE(bvlevel); ++bii)
+                //sVol -= Geom::intersectionVolume(mSphere[bi], mSphere[bii]);
         }
 
         AABBCover[bvlevel] = objVol/bVol;
