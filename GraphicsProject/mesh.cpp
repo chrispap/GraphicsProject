@@ -127,8 +127,9 @@ void Mesh::createBoundingBoxHierarchy()
     for (int ti=0; ti < mTriangles.size(); ++ti)
         mAABBTriangles[0].push_back(ti);
 
-    /* Do BVL subdivisions */
+    /* For every level of hierarchy... */
     for (int bvlevel=0; bvlevel<BVL; ++bvlevel) {
+	/* ...divide every box of that level. */
         for (int div=0; div < (1<<bvlevel); ++div) {
             /* Find parent's, children's indices */
             int parent = (1<<bvlevel) -1+div;

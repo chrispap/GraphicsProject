@@ -28,7 +28,7 @@ GlVisuals::GlVisuals():
     sel_obj (0),
     milli0 (-1),
     t (0.0),
-    style (VOXELS),
+    style (SOLID),
     bvlStyle(AABB)
 {
     loadScene();
