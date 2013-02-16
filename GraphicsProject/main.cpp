@@ -6,7 +6,7 @@
  * instance of the class GlVisuals.
  */
 
-#include <stdio.h>
+#include <cstdio>
 #include "glvisuals.h"
 
 #ifdef __linux__

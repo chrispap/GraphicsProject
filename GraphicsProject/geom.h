@@ -11,7 +11,7 @@
 #include <cfloat>
 #include <vector>
 #include <list>
-#include <math.h>
+#include <cmath>
 
 #ifdef __linux__
 #include <GL/glut.h>

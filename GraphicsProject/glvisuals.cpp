@@ -2,11 +2,11 @@
  * Implementation of class GlVisuals.
  */
 
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <vector>
 #include <string>
-#include <math.h>
+#include <cmath>
 #include "glvisuals.h"
 #include "mesh.h"
 
@@ -28,7 +28,7 @@ GlVisuals::GlVisuals():
     sel_obj (0),
     milli0 (-1),
     t (0.0),
-    style (SOLID),
+    style (VOXELS),
     bvlStyle(AABB)
 {
     loadScene();

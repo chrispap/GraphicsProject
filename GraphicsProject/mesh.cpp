@@ -2,7 +2,7 @@
  * Implementation of class Mesh
  */
 
-#include <stdio.h>
+#include <cstdio>
 #include <ctime>
 #include <cfloat>
 #include <iostream>
@@ -247,7 +247,7 @@ void Mesh::calculateVolume()
     const float dl = mAABB[0].getXSize()/VDIV;
     if (dl<0.00001) return;
 
-    unsigned long int voxelInside=0, voxelTotal=0, intersectionsCount=0, xi=0;
+    unsigned long int voxelInside=0, voxelTotal=0, xi=0;
 
     for (float x=mAABB[0].min.x+dl/2; x<mAABB[0].max.x; x+=dl) {
         printf("[%c] [%-2d%%]", "|/-\\"[xi++%4], (int)(100*((x-mAABB[0].min.x)/mAABB[0].getXSize())));fflush(stdout);
@@ -262,7 +262,6 @@ void Mesh::calculateVolume()
                 /* Count intersecting triangles */
                 set<int>alreadyIntersected;
                 alreadyIntersected.clear();
-                intersectionsCount=0;
                 list<int>::const_iterator ti;
                 int bvl = BVL;
                 for (int bi=BVL_SIZE(bvl-1); bi<BVL_SIZE(bvl); ++bi) {
@@ -270,19 +269,19 @@ void Mesh::calculateVolume()
                     for (ti = mAABBTriangles[bi].begin(); ti!=mAABBTriangles[bi].end(); ++ti) {
                         Triangle &t = mTriangles[*ti];
                         if ((Geom::mkcode(ray.start, t.getBox()) & Geom::mkcode(ray.end, t.getBox()))) continue;
-                        if ( Geom::intersects(t, ray) && (alreadyIntersected.find(*ti)==alreadyIntersected.end())) {
-                            ++intersectionsCount;
-                            alreadyIntersected.insert(*ti);
+                        if ( Geom::intersects(t, ray)) {
+			    alreadyIntersected.insert(*ti);
                         }
                     }
                 }
-
-                /* For odd number of triangles count this voxel to the total volume */
-                if (intersectionsCount%2 == 1){
+                
+                ++voxelTotal;
+                
+		/* For odd number of triangles count this voxel to the total volume */
+                if (alreadyIntersected.size()%2 == 1){
                     mVoxels.push_back( Box (Point(x-dl/2.2, y-dl/2.2, z-dl/2.2), Point(x+dl/2.2, y+dl/2.2, z+dl/2.2)));
                     ++voxelInside;
                 }
-                ++voxelTotal;
             }
         }
         printf ("\r");
