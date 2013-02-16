@@ -250,10 +250,10 @@ void Mesh::calculateVolume()
 
     unsigned long int voxelInside=0, voxelTotal=0, xi=0;
 
-    for (float x=mAABB[0].min.x+dl/2; x<mAABB[0].max.x; x+=dl) {
+    for (float x= mAABB[0].min.x+dl/2; x< mAABB[0].max.x; x+=dl) {
         printf("[%c] [%-2d%%]", "|/-\\"[xi++%4], (int)(100*((x-mAABB[0].min.x)/mAABB[0].getXSize())));fflush(stdout);
-        for (float y=mAABB[0].min.y+dl/2; y<mAABB[0].max.y; y+=dl) {
-            for (float z=mAABB[0].min.z+dl/2; z<mAABB[0].max.z; z+=dl)
+        for (float y= mAABB[0].min.y+dl/2; y< mAABB[0].max.y; y+=dl) {
+            for (float z= mAABB[0].min.z+dl/2; z< mAABB[0].max.z; z+=dl)
             {
                 /* Construct ray */
                 Point ray0(x,y,z);
@@ -289,22 +289,49 @@ void Mesh::calculateVolume()
     }
     printf("             \r");
 
-    /* Calculate the coverage for every level */
+    /* Calculate the coverage for every AABB level */
     float objVol = (mAABB[0].getVolume()*voxelInside)/voxelTotal;
     float bVol, sVol;
 
     for (int bvlevel=0; bvlevel<=BVL; ++bvlevel) {
-        bVol=sVol=0;
-        for (int bi=BVL_SIZE(bvlevel-1); bi< BVL_SIZE(bvlevel); ++bi) {
+        bVol=0;
+        for (int bi=BVL_SIZE(bvlevel-1); bi< BVL_SIZE(bvlevel); ++bi)
             bVol += mAABB[bi].getVolume();
-            sVol += mSphere[bi].getVolume();
-            //for (int bii=bi+1; bii< BVL_SIZE(bvlevel); ++bii)
-                //sVol -= Geom::intersectionVolume(mSphere[bi], mSphere[bii]);
-        }
-
+	
         AABBCover[bvlevel] = objVol/bVol;
-        sphereCover[bvlevel] = objVol/sVol;
     }
+
+    int voxelCount[BVL+1];
+    for (int bvlevel=1; bvlevel<= BVL; bvlevel++) 
+      voxelCount[bvlevel]=0;
+    
+    /* Calculate the coverage for every Sphere level */
+    Box sB = mSphere[0].getBox();
+    float r = mSphere[0].rad;
+    float sBvol = 8.0 *r*r*r;
+    voxelTotal = 0;
+    
+    for (float x= sB.min.x+dl/2; x< sB.max.x; x+=dl) {
+	for (float y= sB.min.y+dl/2; y< sB.max.y; y+=dl) {
+	    for (float z= sB.min.z+dl/2; z< sB.max.z; z+=dl) {
+		++voxelTotal;
+		Point v(x,y,z);
+		for (int bvlevel=1; bvlevel<=BVL; ++bvlevel) {
+		    for (int bi=BVL_SIZE(bvlevel-1); bi< BVL_SIZE(bvlevel); ++bi) {
+			if (mSphere[bi].contains(v)) {
+			    ++voxelCount[bvlevel];
+			    break;
+			}
+		    }
+		}
+	    } 
+	}  
+    }
+    
+    sphereCover[0] = objVol / mSphere[0].getVolume();
+    for (int bvlevel=1; bvlevel<= BVL; bvlevel++)
+	sphereCover[bvlevel] = objVol / (sBvol * ((float)voxelCount[bvlevel]/voxelTotal));
+
 }
 
 void Mesh::loadObj(string filename, vector<Point> &vertices, vector<Triangle> &triangles, bool ccw)

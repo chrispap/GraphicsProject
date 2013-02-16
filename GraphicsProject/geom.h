@@ -492,6 +492,15 @@ struct Sphere {
     float getVolume() const {
         return (4.0/3.0)*PI*(rad*rad*rad);
     }
+    
+    Box getBox() const {
+	Point min(center);
+	Point max(center);
+	Point R(rad, rad, rad);
+	min.sub(R);
+	max.add(R);
+	return Box(min, max);
+    }
 
     Sphere &add(const Point &v) {
         center.add(v);
