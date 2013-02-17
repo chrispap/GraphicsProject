@@ -12,6 +12,7 @@
 #include <vector>
 #include <list>
 #include <cmath>
+#include <cstdlib>
 
 #ifdef __linux__
 #include <GL/glut.h>
