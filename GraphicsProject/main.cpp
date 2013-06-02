@@ -129,10 +129,16 @@ int main(int argc, char* argv[])
     glutKeyboardUpFunc(KeyUpEvent);
     glutSpecialFunc(SpeciaEvent);
 
+    /* Print some info */
+    printf("%s\n", glGetString(GL_VERSION));
+    printf("%s\n", glGetString(GL_VENDOR));
+    printf("%s\n", glGetString(GL_RENDERER));
+
     /* Init our "scene's" OpenGL Parameters */
     visuals->glInitialize();
 
     /* Enter main loop */
+
     glutMainLoop();
 
     return 0;
