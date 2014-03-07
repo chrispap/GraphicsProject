@@ -24,6 +24,8 @@ install_manifest.txt
 *user*
 *Release*
 *Debug*
+*.sdf
+*.ipch
 
 # Visual Studio C++
 *moc_*
